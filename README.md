@@ -22,6 +22,8 @@ npm run dev
 
 ## GitHub Pages
 
+Адрес методички: [siers22.github.io/spravka](https://siers22.github.io/spravka/). Исходники: [siers22/spravka](https://github.com/siers22/spravka).
+
 Публикация настроена через `.github/workflows/pages.yml`: каждый push в `main` проверяет материалы, собирает сайт и обновляет Pages. В настройках репозитория **Settings → Pages → Source** должен быть выбран **GitHub Actions**. Отдельного сервера и платного хостинга не требуется.
 
 Workflow получает путь сайта от GitHub Pages, поэтому архивы, изображения и локальные шрифты работают и по адресу проекта `/spravka/`, и в корне собственного домена. Секреты и токены в файлы проекта добавлять не нужно. На Pages размещается только содержимое `dist`; учебные Razor Pages проекты скачиваются и запускаются отдельно на Windows.
