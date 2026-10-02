@@ -1,0 +1,11 @@
+@page
+@model ProductModel
+@{ ViewData["Title"]="Карточка товара"; var product=Model.Product!; }
+<h1>@product.Name</h1><img class="details-image" src="/images/@product.ImagePath" onerror="this.onerror=null;this.src='/picture.png';" alt="@product.Name">
+<p>Производство: @product.Manufacturer</p><p>Категория: @product.Category / @product.Subcategory</p><p>Цена со скидкой: @product.FinalPrice.ToString("N2") ₽</p><p>Состав: @product.Composition</p><p>Описание: @product.Description</p>
+<p>Размерный ряд: @string.Join(", ",Model.Stock.Select(stock=>stock.Size))</p>
+@if(Model.Error!=""){<div class="message error" role="alert"><b>⚠ Ошибка</b><p>@Model.Error</p></div>}
+@if(User.Identity?.IsAuthenticated==true){
+<form method="post"><label>Доступный размер<select asp-for="StockItemId">@foreach(var stock in Model.Stock.Where(stock=>stock.Available>0)){<option value="@stock.Id">@stock.Size — доступно @stock.Available</option>}</select></label><label>Пар<input asp-for="Quantity" type="number" min="1" step="1" required></label><button disabled="@(!Model.Stock.Any(stock=>stock.Available>0))">Добавить в заказ</button></form>
+}else{<a href="/Login">Войти, чтобы оформить заказ</a>}
+<a class="back" href="/">Назад в каталог</a>

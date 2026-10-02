@@ -1,0 +1,5 @@
+@model List<Product>
+@if(Model.Count==0){<div class="message"><b>ℹ Нет результатов</b><p>Очистите поиск или выберите «Все категории».</p></div>}
+@foreach(var product in Model){
+<div class="product @(product.Available<=3 ? "low" : "")"><img src="/images/@product.ImagePath" onerror="this.onerror=null;this.src='/picture.png';" alt="@product.Name"><div><h2><a asp-page="/Product" asp-route-id="@product.Id">@product.Manufacturer | @product.Name</a></h2><p>@product.Category</p><p>Количество: @(product.Available>5 ? "много" : "мало") (@product.Available)</p><p>Состав: @product.Composition</p></div><div class="price">@product.FinalPrice.ToString("N2") ₽</div></div>
+}

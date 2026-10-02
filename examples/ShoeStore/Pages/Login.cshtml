@@ -1,0 +1,6 @@
+@page
+@model LoginModel
+@{ ViewData["Title"]="Вход"; }
+<h1>Вход в «Чудо Обувь»</h1><p>По условиям этого задания вход только по логину, без пароля.</p>
+@if(Model.Error!=""){<div class="message error" role="alert"><b>⚠ Ошибка</b><p>@Model.Error</p></div>}
+<form method="post"><label>Логин<input asp-for="Login" required autocomplete="username"></label><button>Войти</button></form><a class="back" href="/">Назад в каталог</a>

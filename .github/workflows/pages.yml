@@ -1,0 +1,57 @@
+name: Publish guide to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+      - name: Set up Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v6
+      - name: Install dependencies
+        run: npm ci
+      - name: Verify learning materials
+        run: npm run check
+      - name: Build site for its Pages address
+        env:
+          VITE_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+        run: npm run build
+      - name: Verify published assets
+        env:
+          VITE_BASE_PATH: ${{ steps.pages.outputs.base_path }}/
+        run: npm run check:pages
+      - name: Upload website
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Publish website
+        id: deployment
+        uses: actions/deploy-pages@v5

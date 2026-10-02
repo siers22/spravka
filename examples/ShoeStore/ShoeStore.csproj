@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><PackageReference Include="Npgsql" Version="10.0.3"/><PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.7"/><PackageReference Include="ClosedXML" Version="0.105.1"/></ItemGroup>
+  <ItemGroup><Content Include="Data/*.xlsx" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+</Project>

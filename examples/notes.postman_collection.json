@@ -1,0 +1,205 @@
+{
+  "info": {
+    "name": "КИМ 09.02.07 — заметки",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Перед обычными тестами запустите БД и seed. Папку 500 запускайте отдельно: остановите сервер БД, приложение оставьте запущенным, после теста запустите БД. Моделируется настоящий сбой подключения."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5080"
+    }
+  ],
+  "item": [
+    {
+      "name": "Штатные проверки — БД запущена",
+      "item": [
+        {
+          "name": "200 + структура и формат даты",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/notes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ — валидный JSON', () => { pm.response.json(); });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Массив содержит минимум 3 заметки', () => { const data=pm.response.json(); pm.expect(data).to.be.an('array'); pm.expect(data.length).to.be.at.least(3); });",
+                  "pm.test('Точные ключи, дата и title_user', () => { pm.response.json().forEach(note => { pm.expect(note).to.have.all.keys('id','title_user','content','formatted_date'); pm.expect(note.formatted_date).to.match(/^\\d{2}\\.\\d{2}\\.\\d{4}$/); pm.expect(note.title_user).to.include(' - '); }); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "400 — неверный тип user_id",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/notes?user_id=abc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notes"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "abc"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 400', () => pm.response.to.have.status(400));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ — валидный JSON', () => { pm.response.json(); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "200 + пустой массив — нет совпадений",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/notes?user_id=2147483647",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notes"
+              ],
+              "query": [
+                {
+                  "key": "user_id",
+                  "value": "2147483647"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ — валидный JSON', () => { pm.response.json(); });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Нет совпадений — []', () => pm.expect(pm.response.json()).to.deep.equal([]));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Сбой 500 — сначала ОСТАНОВИТЕ БД, не приложение",
+      "item": [
+        {
+          "name": "500 — реальная ошибка БД",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/notes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "notes"
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 500', () => pm.response.to.have.status(500));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Ответ — валидный JSON', () => { pm.response.json(); });"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Объяснение ошибки', () => pm.expect(pm.response.json().error).to.be.a('string'));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

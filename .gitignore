@@ -1,0 +1,9 @@
+node_modules/
+dist/
+tmp/
+**/bin/
+**/obj/
+.env
+.env.*
+!.env.example
+.DS_Store

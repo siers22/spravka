@@ -1,0 +1,8 @@
+@page
+@model ShoeStore.Pages.Orders.IndexModel
+@{ ViewData["Title"]="Заказы клиентов"; }
+<h1>Заказы клиентов</h1><a href="/">Добавить заказ: выбрать товары в каталоге</a>
+@if(Model.Error!=""){<div class="message error" role="alert"><b>⚠ Ошибка</b><p>@Model.Error</p></div>}
+<div class="table-wrap"><table><thead><tr><th>№</th><th>Дата</th><th>ФИО клиента</th><th>Итого</th><th>Действия</th></tr></thead><tbody>
+@foreach(var order in Model.Orders){<tr><td>@order.Id</td><td>@order.Date.ToString("dd.MM.yyyy")</td><td>@order.FullName</td><td>@order.Total.ToString("N2") ₽</td><td><a asp-page="/Orders/Details" asp-route-id="@order.Id">Состав</a><form method="post" asp-page-handler="Delete" onsubmit="return confirm('Удалить заказ и вернуть пары в доступный остаток?');"><input type="hidden" name="id" value="@order.Id"><button>Удалить</button></form></td></tr>}
+</tbody></table></div><a class="back" href="/">Назад в каталог</a>

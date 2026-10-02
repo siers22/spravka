@@ -1,0 +1,15 @@
+@page
+@model ExamGuide.Pages.Admin.IndexModel
+<h1>Управление пользователями</h1>
+@if (TempData["Message"] is string message) { <p class="message" role="status"><strong>ℹ Информация</strong><br>@message</p> }
+@if(Model.Message!=""){<p class="message" role="alert"><strong>⚠ Ошибка</strong><br>@Model.Message</p>}
+<section><h2>Новый пользователь</h2><form method="post" asp-page-handler="Add">
+<label>Логин <input name="login" required maxlength="100"></label><label>Пароль <input name="password" type="password" required></label>
+<label>Роль <select name="role"><option>Пользователь</option><option>Администратор</option></select></label><button>Добавить</button></form></section>
+@foreach(var user in Model.Users){
+<section><h2>@user.Login</h2><p>Ошибок подряд: @user.FailedAttempts. Состояние: @(user.IsBlocked ? "Заблокирован" : "Активен")</p>
+<form method="post" asp-page-handler="Edit"><input type="hidden" name="id" value="@user.Id">
+<label>Логин <input name="login" value="@user.Login" required maxlength="100"></label>
+<label>Новый пароль <input name="password" type="password" placeholder="Пусто — оставить текущий"></label>
+<label>Роль <select name="role"><option selected="@(user.Role=="Пользователь")">Пользователь</option><option selected="@(user.Role=="Администратор")">Администратор</option></select></label>
+<label><input type="checkbox" name="unblock" value="true"> Снять блокировку и сбросить ошибки</label><button>Сохранить</button></form></section>}

@@ -1,0 +1,22 @@
+@page
+@model LoginModel
+<h1>Авторизация</h1>
+@if (Model.Message != "") { <p class="message" role="alert"><strong>⚠ Ошибка</strong><br>@Model.Message</p> }
+<form method="post" id="loginForm">
+<label>Логин <input asp-for="Login" required autocomplete="username" maxlength="100"></label>
+<label>Пароль <input asp-for="Password" type="password" required autocomplete="current-password"></label>
+<p>Соберите картинку. Нажмите на два фрагмента, чтобы поменять их местами.</p>
+<div class="puzzle" id="puzzle">
+@foreach (var tile in Model.Tiles) { <button type="button" data-tile="@tile" aria-label="Фрагмент картинки"><img src="@Url.Page("/PuzzleTile",new { index=tile })" alt="Фрагмент"></button> }
+</div><input asp-for="Puzzle" type="hidden"><button type="submit">Войти</button></form>
+@section Scripts {
+<script>
+let selected=null;
+const grid=document.querySelector('#puzzle');
+grid.addEventListener('click',event=>{const tile=event.target.closest('button');if(!tile)return;
+if(!selected){selected=tile;tile.classList.add('selected');return;}
+if(selected!==tile){const marker=document.createElement('span');selected.replaceWith(marker);tile.replaceWith(selected);marker.replaceWith(tile);}
+selected.classList.remove('selected');selected=null;});
+document.querySelector('#loginForm').addEventListener('submit',()=>{document.querySelector('#Puzzle').value=JSON.stringify([...grid.children].map(tile=>Number(tile.dataset.tile)));});
+</script>
+}
