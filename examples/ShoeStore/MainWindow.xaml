@@ -1,4 +1,4 @@
-<Window x:Class="ShoeStore.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:ShoeStore" Title="Чудо Обувь · Каталог" Icon="Assets/favicon.ico" Width="1200" Height="850" MinWidth="900" MinHeight="600">
+<Window x:Class="ShoeStore.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" xmlns:local="clr-namespace:ShoeStore" Title="Чудо Обувь · Каталог" Icon="/ShoeStore;component/Assets/favicon.ico" Width="1200" Height="850" MinWidth="900" MinHeight="600">
  <Window.Resources><local:ProductImageConverter x:Key="ProductImage"/></Window.Resources>
  <DockPanel Margin="16">
   <DockPanel DockPanel.Dock="Top" Background="#D2F6E7" Margin="0,0,0,12">

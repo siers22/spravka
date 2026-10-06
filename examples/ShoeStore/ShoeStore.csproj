@@ -2,5 +2,5 @@
   <PropertyGroup><OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><EnableWindowsTargeting>true</EnableWindowsTargeting><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><ApplicationIcon>Assets/favicon.ico</ApplicationIcon></PropertyGroup>
   <ItemGroup><Compile Remove="Data/**/*.cs" /><ProjectReference Include="../ShoeStore.Core/ShoeStore.Core.csproj" /></ItemGroup>
   <ItemGroup><None Update="appsettings.json;Data/*.xlsx;sql/*.sql" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
-<ItemGroup><None Remove="Assets/**/*"/><Content Include="Assets/**/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Remove="Assets/**/*"/><Resource Include="Assets/favicon.ico"/><Content Include="Assets/**/*" Exclude="Assets/favicon.ico" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
 </Project>
