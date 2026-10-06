@@ -1,5 +1,6 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
-  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
-  <ItemGroup><PackageReference Include="Npgsql" Version="10.0.3"/><PackageReference Include="Microsoft.Data.SqlClient" Version="6.1.7"/><PackageReference Include="ClosedXML" Version="0.105.1"/></ItemGroup>
-  <ItemGroup><Content Include="Data/*.xlsx" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>WinExe</OutputType><TargetFramework>net10.0-windows</TargetFramework><UseWPF>true</UseWPF><EnableWindowsTargeting>true</EnableWindowsTargeting><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings><ApplicationIcon>Assets/favicon.ico</ApplicationIcon></PropertyGroup>
+  <ItemGroup><Compile Remove="Data/**/*.cs" /><ProjectReference Include="../ShoeStore.Core/ShoeStore.Core.csproj" /></ItemGroup>
+  <ItemGroup><None Update="appsettings.json;Data/*.xlsx;sql/*.sql" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
+<ItemGroup><None Remove="Assets/**/*"/><Content Include="Assets/**/*" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
 </Project>

@@ -1,9 +1,0 @@
-@page
-@model ShoeStore.Pages.Orders.DetailsModel
-@{ ViewData["Title"]="Состав заказа"; var order=Model.Order!; }
-<h1>Заказ № @order.Id</h1><p>@order.Date.ToString("dd.MM.yyyy") · @order.FullName</p>
-@if(Model.Error!=""){<div class="message error" role="alert"><b>⚠ Ошибка</b><p>@Model.Error</p></div>}
-@if(User.IsInRole("Admin")){<form method="post" asp-page-handler="Date"><input type="hidden" name="id" value="@order.Id"><label>Дата заказа<input name="date" type="date" value="@order.Date.ToString("yyyy-MM-dd")" required></label><button>Сохранить дату</button></form>}
-<div class="table-wrap"><table><thead><tr><th>Модель / производство</th><th>Размер</th><th>Пар</th><th>Цена за пару</th><th>Сумма</th><th></th></tr></thead><tbody>
-@foreach(var line in Model.Lines){<tr><td>@line.Name / @line.Manufacturer</td><td>@line.Size</td><td>@line.Quantity</td><td>@line.UnitPrice.ToString("N2") ₽</td><td>@((line.UnitPrice*line.Quantity).ToString("N2")) ₽</td><td>@if(User.IsInRole("Admin")){<form method="post" asp-page-handler="Remove" onsubmit="return confirm('Удалить позицию и вернуть пары на склад?');"><input type="hidden" name="id" value="@order.Id"><input type="hidden" name="itemId" value="@line.Id"><button>Удалить позицию</button></form>}</td></tr>}
-</tbody></table></div><p>Итого: @order.Total.ToString("N2") ₽</p><a class="back" href="/Orders">Назад к заказам</a>

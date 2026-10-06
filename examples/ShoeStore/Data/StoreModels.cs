@@ -6,7 +6,8 @@ public sealed record Product(int Id,string Name,string Category,string Subcatego
 public sealed record StockItem(int Id,int ProductId,decimal Size,int Available);
 public sealed record BasketLine(int StockItemId,int Quantity);
 public sealed record OrderHeader(int Id,DateTime Date,string FullName,decimal Total);
-public sealed record OrderLine(int Id,int StockItemId,string Name,string Manufacturer,decimal Size,int Quantity,decimal UnitPrice);
+public sealed record OrderLine(int Id,int StockItemId,string Name,string Manufacturer,decimal Size,int Quantity,decimal UnitPrice)
+{ public decimal Total => Quantity * UnitPrice; }
 
 public static class DiscountCalculator
 {

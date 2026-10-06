@@ -1,0 +1,5 @@
+<Window x:Class="ShoeStore.LoginWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Чудо Обувь · Вход" Icon="Assets/favicon.ico" Width="460" Height="300" ResizeMode="NoResize">
+ <StackPanel Margin="24"><TextBlock Text="Вход по логину" FontSize="26"/><TextBlock Text="Логин из Users_import.xlsx. Пароль по этому заданию не нужен." TextWrapping="Wrap" Margin="0,12"/>
+  <TextBox x:Name="Login" AutomationProperties.Name="Логин"/><Button x:Name="Enter" Content="Войти" IsDefault="True" Click="Enter_Click"/><Button Content="Назад к каталогу" Click="Back_Click"/>
+ </StackPanel>
+</Window>

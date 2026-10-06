@@ -1,6 +1,0 @@
-@page
-@model IndexModel
-<h1>Рабочий стол</h1>
-@if (TempData["Message"] is string message) { <p class="message" role="status"><strong>ℹ Информация</strong><br>@message</p> }
-@if(User.Identity?.IsAuthenticated==true){<p>Пользователь: @User.Identity.Name</p><form method="post" asp-page-handler="Logout"><button>Выйти</button></form>}
-else {<p>Чтобы войти в систему, откройте <a asp-page="/Login">форму авторизации</a>.</p>}

@@ -1,0 +1,13 @@
+<Window x:Class="ExamGuide.LoginWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Информационные системы · Вход" Width="540" Height="720" MinWidth="500" MinHeight="650">
+ <ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel Margin="28">
+  <TextBlock Text="Вход в приложение" FontSize="28" Margin="0,0,0,16"/>
+  <TextBlock Text="Логин"/><TextBox x:Name="Login" AutomationProperties.Name="Логин"/>
+  <TextBlock Text="Пароль"/><PasswordBox x:Name="Password" AutomationProperties.Name="Пароль"/>
+  <TextBlock Text="Соберите изображение: нажмите два фрагмента, чтобы поменять их местами." TextWrapping="Wrap" Margin="0,12"/>
+  <UniformGrid x:Name="Tiles" Columns="2" Width="288" Height="288"/>
+  <Button Content="Перемешать пазл" Click="Shuffle_Click"/>
+  <Button x:Name="Enter" Content="Войти" IsDefault="True" Click="Login_Click"/>
+  <Separator Margin="0,12"/><TextBlock Text="Первый запуск: сначала создайте БД по README, затем подготовьте учебные аккаунты и JSON." TextWrapping="Wrap"/>
+  <Button x:Name="Seed" Content="Подготовить учебные данные" Click="Seed_Click"/>
+ </StackPanel></ScrollViewer>
+</Window>

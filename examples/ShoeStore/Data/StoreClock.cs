@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using System.Globalization;
 namespace ShoeStore.Data;
 public sealed class StoreClock(IConfiguration configuration)

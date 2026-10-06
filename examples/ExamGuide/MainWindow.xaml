@@ -1,0 +1,8 @@
+<Window x:Class="ExamGuide.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" Title="Информационные системы · Рабочий стол" Width="760" Height="400" MinWidth="650" MinHeight="350">
+ <StackPanel Margin="28"><TextBlock Text="Рабочий стол" FontSize="28"/><TextBlock x:Name="Welcome" Margin="0,16"/>
+  <TextBlock Text="Авторизация и управление пользователями — WPF. Для задания 5 отдельно запустите NotesApi и откройте GET /notes в Postman." TextWrapping="Wrap" Margin="0,12"/>
+  <Button x:Name="Admin" Content="Управление пользователями" Click="Admin_Click"/>
+  <Button Content="Проверить учётную запись" Click="Refresh_Click"/>
+  <Button Content="Выйти" Click="Logout_Click"/>
+ </StackPanel>
+</Window>

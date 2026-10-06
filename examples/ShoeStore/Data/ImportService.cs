@@ -5,7 +5,7 @@ using ClosedXML.Excel;
 
 namespace ShoeStore.Data;
 
-public sealed class ImportService(Database database, IWebHostEnvironment environment)
+public sealed class ImportService(Database database, string dataDirectory)
 {
     public static string Normalize(string text) => Regex.Replace(text.Replace('\u00a0',' '), @"\s+", " ").Trim();
     // Явное сопоставление сокращённого названия с каталогом. Это решение для данного архива.
@@ -17,7 +17,7 @@ public sealed class ImportService(Database database, IWebHostEnvironment environ
     private static decimal Size(IXLCell cell) => decimal.Parse(cell.GetString().Replace(',','.'),CultureInfo.InvariantCulture);
     private List<IXLRow> Rows(string name, out XLWorkbook workbook)
     {
-        workbook = new XLWorkbook(Path.Combine(environment.ContentRootPath,"Data",name));
+        workbook = new XLWorkbook(Path.Combine(dataDirectory,name));
         return workbook.Worksheet(1).RowsUsed().Skip(1).ToList();
     }
     public async Task RunAsync()

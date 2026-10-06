@@ -1,0 +1,4 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup><TargetFramework>net10.0</TargetFramework><Nullable>enable</Nullable><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../ExamGuide.Core/ExamGuide.Core.csproj" /><Content Include="../ExamGuide/Data/customers.json" Link="Data/customers.json" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+</Project>
