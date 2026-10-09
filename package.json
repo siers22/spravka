@@ -7,8 +7,9 @@
     "dev": "vite --host 0.0.0.0",
     "build": "vite build",
     "preview": "vite preview --host 0.0.0.0",
-    "check": "node scripts/check-content.mjs && node scripts/check-courses.mjs && node scripts/check-wpf.mjs && python3 scripts/check-example-archives.py",
-    "check:pages": "node scripts/check-pages.mjs"
+    "check": "node scripts/check-catalog.mjs && node --test tests/content/*.test.mjs && node scripts/check-content.mjs && node scripts/check-courses.mjs && node scripts/check-wpf.mjs && python3 scripts/check-example-archives.py",
+    "check:pages": "node scripts/check-pages.mjs",
+    "content:sync-examples": "node scripts/sync-2027-examples.mjs"
   },
   "dependencies": {
     "vue": "^3.5.22",

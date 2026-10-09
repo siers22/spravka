@@ -1,0 +1,23 @@
+name: Check guide changes
+on:
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  content:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run check
+      - run: npm run build
+        env:
+          VITE_BASE_PATH: /spravka/
+      - run: npm run check:pages
+        env:
+          VITE_BASE_PATH: /spravka/

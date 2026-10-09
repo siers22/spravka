@@ -96,6 +96,12 @@ for (const [relative, signature] of requiredDownloads) {
     check(fs.readFileSync(file).subarray(0, signature.length).toString('ascii') === signature, `Invalid or placeholder course file: ${relative}`)
   }
 }
+const catalog=JSON.parse(fs.readFileSync(path.join(root,'content/catalog.json'),'utf8'))
+for(const edition of catalog.editions)for(const course of edition.courses)for(const url of new Set([course.download,...course.resources.map(r=>r.url),...course.lessons.flatMap(l=>l.sections.flatMap(s=>s.blocks.flatMap(b=>b.type==='links'?b.items.map(item=>item.url):b.type==='image'?[b.url]:[])))].filter(Boolean))) {
+  if(/^https?:\/\//i.test(url))continue
+  localAsset(base+url,`Catalog ${edition.year}/${course.id}: ${url}`)
+}
+
 const shoes = JSON.parse(fs.readFileSync(path.join(root, 'src/data/shoes.json'), 'utf8'))
 check(shoes.length === 31, 'The shoe preview fixture must contain all 31 source models')
 const shoeImages = new Set([...shoes.map(shoe => shoe.image), 'picture.png'])

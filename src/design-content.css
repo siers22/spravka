@@ -133,7 +133,13 @@
 .code-block .token.function, .code-block .token.class-name, .code-block .token.number { color: #8ccff0; }
 .code-block .token.boolean, .code-block .token.constant, .code-block .token.property { color: #ebc398; }
 .code-block .token.tag, .code-block .token.attr-name { color: #96d8d6; }
-.toc { top: 110px; border-left: 1px solid var(--line); padding-left: 21px; }
+.toc { top: 110px; border-left: 1px solid var(--line); padding-left: 21px; max-height: calc(100vh - 130px); overflow-y: auto; }
+.lesson-links { padding-left: 20px; margin: 22px 0; display: grid; gap: 13px; }
+.lesson-links a { color: var(--blue); text-decoration: underline; text-underline-offset: 3px; overflow-wrap: anywhere; line-height: 1.7; }
+.lesson-links p { color: var(--text-secondary); font-size: 14px; line-height: 1.7; margin-top: 4px; }
+.lesson-image { margin: 24px 0; }
+.lesson-image img { display: block; width: 100%; height: auto; border: 1px solid var(--border); border-radius: 10px; }
+.lesson-image figcaption { margin-top: 10px; font-size: 14px; line-height: 1.65; color: var(--text-secondary); }
 .toc > .nav-label { color: var(--muted); font-size: 10px; letter-spacing: 1px; margin: 4px 0 17px; }
 .toc > a { color: var(--text-secondary); font-size: 12px; line-height: 1.7; padding: 9px 0; gap: 9px; }
 .toc > a > span:first-child { color: var(--muted); font-size: 10px; }

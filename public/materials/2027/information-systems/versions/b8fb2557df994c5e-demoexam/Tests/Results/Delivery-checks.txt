@@ -1,0 +1,5 @@
+﻿PASS: Fresh database initialization, full data import and cost calculation.
+PASS: Repeated setup preserves existing data.
+PASS: SQL dump restores tables, constraints, rows and the cost view.
+PASS: Restored schema has the 15 tables and 19 foreign keys shown in the ER diagram.
+PASS: Temporary delivery-check databases removed after checks.

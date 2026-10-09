@@ -1,0 +1,20 @@
+<script setup>
+import {blockTypes} from '../content/catalog.js'
+const props=defineProps({block:Object,codes:Object})
+const labels={p:'Текст',list:'Список шагов',note:'Примечание',table:'Таблица',code:'Код',links:'Ссылки на материалы',image:'Изображение',dbSetup:'Создание БД',diagram:'Демо ER-схемы (2027)',calculator:'Демо расчёта (2027)',authDemo:'Демо входа (2027)',shoeDemo:'Демо магазина (2027)'}
+function typeChanged(event){const type=event.target.value;Object.keys(props.block).forEach(k=>delete props.block[k]);Object.assign(props.block,{type},({p:{text:''},list:{items:['']},note:{title:'Примечание',text:'',tone:'info'},table:{headers:['Колонка 1','Колонка 2'],rows:[['','']]},code:{text:'',title:'Пример',language:'csharp'},image:{url:'',alt:'',caption:''},links:{items:[{title:'Документация',url:'https://learn.microsoft.com/',description:''}]},dbSetup:{name:'exam_demo'}})[type]||{})}
+function rows(event){props.block.rows=event.target.value.split('\n').map(row=>row.split('\t'))}
+</script>
+<template>
+<div class="block-editor"><div class="block-heading"><label>Тип блока<select :value="block.type" @change="typeChanged"><option v-for="type in blockTypes" :key="type" :value="type">{{labels[type]}}</option></select></label><slot/></div>
+<label v-if="['p','note'].includes(block.type)">Текст<textarea v-model="block.text" rows="4"/></label>
+<template v-if="block.type==='note'"><label>Заголовок<input v-model="block.title"></label><label>Стиль<select v-model="block.tone"><option value="info">Информация</option><option value="warning">Предупреждение</option><option value="success">Успех</option></select></label></template>
+<label v-if="block.type==='list'">По одному шагу на строку<textarea :value="block.items.join('\n')" rows="4" @input="block.items=$event.target.value.split('\n')"/></label>
+<template v-if="block.type==='image'"><label>Адрес изображения<input v-model="block.url"></label><label>Описание для доступности<input v-model="block.alt"></label><label>Подпись<input v-model="block.caption"></label></template>
+<template v-if="block.type==='links'"><div v-for="(item,index) in block.items" :key="index"><label>Название<input v-model="item.title"></label><label>Адрес<input v-model="item.url"></label><label>Пояснение<input v-model="item.description"></label><button type="button" class="editor-small" @click="block.items.splice(index,1)">Удалить ссылку</button></div><button type="button" class="editor-small" @click="block.items.push({title:'',url:'',description:''})">Добавить ссылку</button></template>
+<template v-if="block.type==='table'"><label>Заголовки через символ |<input :value="block.headers.join(' | ')" @input="block.headers=$event.target.value.split('|').map(s=>s.trim())"></label><label>Строки: ячейки разделены табуляцией (можно вставить из таблицы)<textarea :value="block.rows.map(r=>r.join('\t')).join('\n')" rows="5" @input="rows"/></label></template>
+<template v-if="block.type==='code'"><label>Подпись<input v-model="block.title"></label><label>Язык<select v-model="block.language"><option v-for="language in ['csharp','sql','json','xml','bash','javascript','text']" :key="language">{{language}}</option></select></label><label v-if="block.key">Пример из словаря кода<select v-model="block.key"><option v-for="(_,key) in codes" :key="key">{{key}}</option></select></label><button v-if="block.key" type="button" class="editor-small" @click="block.text=typeof codes[block.key]==='string'?codes[block.key]:codes[block.key]?.postgres||'';delete block.key">Скопировать код в этот блок и редактировать</button><label v-else>Код<textarea v-model="block.text" class="code-input" rows="9" spellcheck="false"/></label></template>
+<label v-if="block.type==='dbSetup'">Имя базы<input v-model="block.name"></label>
+<p v-if="['diagram','calculator','authDemo','shoeDemo'].includes(block.type)" class="editor-help">Готовая интерактивная демонстрация из выпуска 2027. Она использует исходные учебные данные; для другого задания добавьте текст, таблицу или код.</p>
+</div>
+</template>

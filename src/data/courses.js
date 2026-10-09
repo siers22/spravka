@@ -1,8 +1,7 @@
-import * as systems from './lessons.js'
-import * as programmer from './programmer-lessons.js'
-import {codes as systemsCodes} from './code.js'
-import {codes as programmerCodes} from './programmer-code.js'
-import {courseMeta} from './course-meta.js'
-export const courses={
-'information-systems':{...courseMeta['information-systems'],...systems,codes:systemsCodes},
-programmer:{...courseMeta.programmer,...programmer,codes:programmerCodes}}
+import catalogData from '../../content/catalog.json'
+import {publicUrl} from '../utils/public-url.js'
+export const catalog=catalogData
+export function coursesForYear(year) {
+  return Object.fromEntries((catalog.editions.find(e=>e.year===year)?.courses||[]).filter(c=>c.status==='published').map(c=>[c.id,{...c,download:c.download?publicUrl(c.download):'',resources:c.resources.map(r=>({...r,url:publicUrl(r.url)}))}]))
+}
+export const courses=coursesForYear(catalog.currentYear)

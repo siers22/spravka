@@ -5,3 +5,5 @@ import './design-shell.css'
 import './design-content.css'
 import './design-home.css'
 createApp(App).mount('#app')
+
+import "./catalog.css"
