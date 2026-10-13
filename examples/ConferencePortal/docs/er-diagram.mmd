@@ -1,0 +1,26 @@
+erDiagram
+    users ||--o{ bookings : creates
+    rooms ||--o{ bookings : hosts
+    bookings ||--o| reviews : receives
+    users { int id PK
+ string login UK
+ string password_hash
+ string full_name
+ string phone
+ string email
+ string role }
+    rooms { int id PK
+ string name UK
+ string description
+ string image
+ int capacity }
+    bookings { int id PK
+ int user_id FK
+ int room_id FK
+ datetime starts_at
+ string payment
+ string status }
+    reviews { int id PK
+ int booking_id FK,UK
+ string body
+ timestamp created_at }

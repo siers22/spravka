@@ -1,0 +1,3 @@
+config.local.php
+.env
+tests/results/

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru"><head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Заявки пользователей · Конференции.РФ</title>
+    <link rel="icon" href="../assets/mark.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="../assets/bootstrap.min.css">
+    <link rel="stylesheet" href="../assets/app.css">
+    <script src="../assets/app.js" defer=""></script>
+</head>
+<body>
+<a class="skip" href="#main">Перейти к содержанию</a>
+<header class="site-header">
+    <a class="brand" href="login.html"><img src="../assets/mark.svg" width="38" height="38" alt=""><span>Конференции<span class="brand-dot">.РФ</span><small>ПРОСТРАНСТВО ДЛЯ ВАШИХ ИДЕЙ</small></span></a>
+    <nav aria-label="Основная навигация">
+                <a href="dashboard.html">Мои заявки</a>
+        <a href="admin.html" aria-current="page">Администратор</a>        <form><button class="nav-logout" type="button" disabled>Выйти</button></form>
+            </nav>
+</header>
+<main id="main" class="container portal-main" tabindex="-1">
+            <header class="page-heading heading-actions"><div><span class="eyebrow">ПАНЕЛЬ АДМИНИСТРАТОРА</span><h1>Встречи под контролем<span>.</span></h1><p>Рассматривайте заявки и помогайте идеям встретиться.</p></div><a class="btn btn-primary" href="booking.html">Новая заявка ↗</a></header>
+<form><input type="hidden" name="page">
+<div><label for="status">Статус</label><select name="status" id="status" class="form-select"><option value="">Все статусы</option><option value="new">Новая</option><option value="assigned">Мероприятие назначено</option><option value="completed">Завершено</option></select></div>
+<div><label for="room">Помещение</label><select name="room" id="room" class="form-select"><option value="">Все помещения</option><option value="1">Аудитория</option><option value="2">Коворкинг</option><option value="3">Кинозал</option></select></div>
+<div><label for="date">Дата</label><input class="form-control" type="date" name="date" id="date" value=""></div><button class="btn btn-outline-primary" type="button" disabled>Применить</button><a class="reset-link" href="admin.html">Сбросить</a></form>
+<div class="results-heading"><h2>Все заявки</h2><span>Найдено: 1</span></div>
+<div class="bookings-grid">
+<article class="booking-card" data-booking-id="1">
+<div class="booking-card-head"><span class="request-number">ЗАЯВКА № 1</span><span class="status status-completed">Завершено</span></div>
+<h3>Коворкинг</h3><p class="booking-date">12.11.2026 · 14:30 <small>МСК</small></p><p class="payment-label">Перевод по системе СБП</p>
+<dl class="customer-details"><dt>Организатор</dt><dd>Иванов Сергей Петрович</dd><dt>Контакты</dt><dd>8(999)123-45-67<br>viewer@example.test</dd></dl><div class="review"><b>Отзыв о мероприятии</b><p>Отличное пространство для совместной работы. Всё прошло по плану!</p></div></article></div>
+</main>
+<footer class="site-footer"><span>© 2026 Конференции.РФ</span><span>Место, где начинается диалог</span></footer>
+
+
+</body><div id="codex-browser-sidebar-comments-root" style="position: fixed; inset: 0px; pointer-events: none; z-index: 2147483647;"></div></html>

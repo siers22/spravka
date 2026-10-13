@@ -1,0 +1,6 @@
+FROM docker.io/library/php:8.4-apache
+RUN docker-php-ext-install pdo_mysql
+COPY . /var/www/portal
+ENV APACHE_DOCUMENT_ROOT=/var/www/portal/public
+RUN sed -ri 's!/var/www/html!/var/www/portal/public!g' /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
+WORKDIR /var/www/portal

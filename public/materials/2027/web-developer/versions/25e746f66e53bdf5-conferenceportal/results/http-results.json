@@ -1,0 +1,239 @@
+{
+  "checked_at": "2026-10-13T15:46:03.404791+00:00",
+  "checks": [
+    {
+      "name": "login responds with UTF-8 page",
+      "passed": true
+    },
+    {
+      "name": "session cookie is HttpOnly and SameSite=Lax",
+      "passed": true
+    },
+    {
+      "name": "private responses cannot be cached",
+      "passed": true
+    },
+    {
+      "name": "guest is redirected to login",
+      "passed": true
+    },
+    {
+      "name": "unknown page returns 404",
+      "passed": true
+    },
+    {
+      "name": "missing CSRF returns 403",
+      "passed": true
+    },
+    {
+      "name": "all five registration fields validated server-side",
+      "passed": true
+    },
+    {
+      "name": "registration rejects invalid login abc",
+      "passed": true
+    },
+    {
+      "name": "registration rejects invalid login русский",
+      "passed": true
+    },
+    {
+      "name": "registration rejects invalid login user_777",
+      "passed": true
+    },
+    {
+      "name": "registration rejects invalid password 1234567",
+      "passed": true
+    },
+    {
+      "name": "registration rejects invalid full_name Alice",
+      "passed": true
+    },
+    {
+      "name": "registration rejects invalid phone +79991234567",
+      "passed": true
+    },
+    {
+      "name": "registration rejects invalid email wrong",
+      "passed": true
+    },
+    {
+      "name": "valid registration creates account",
+      "passed": true
+    },
+    {
+      "name": "duplicate login returns inline error and preserves fields",
+      "passed": true
+    },
+    {
+      "name": "login uniqueness is case-insensitive",
+      "passed": true
+    },
+    {
+      "name": "second user registration works",
+      "passed": true
+    },
+    {
+      "name": "incorrect password returns inline error",
+      "passed": true
+    },
+    {
+      "name": "SQL injection cannot bypass login",
+      "passed": true
+    },
+    {
+      "name": "valid login shows personal dashboard",
+      "passed": true
+    },
+    {
+      "name": "login rotates session identifier",
+      "passed": true
+    },
+    {
+      "name": "regular user cannot access administration",
+      "passed": true
+    },
+    {
+      "name": "regular user cannot forge status POST",
+      "passed": true
+    },
+    {
+      "name": "booking rejects unknown room",
+      "passed": true
+    },
+    {
+      "name": "booking rejects unknown payment",
+      "passed": true
+    },
+    {
+      "name": "booking rejects impossible date",
+      "passed": true
+    },
+    {
+      "name": "booking rejects past date",
+      "passed": true
+    },
+    {
+      "name": "booking rejects injected room",
+      "passed": true
+    },
+    {
+      "name": "valid booking starts as new",
+      "passed": true
+    },
+    {
+      "name": "early review rejected on server",
+      "passed": true
+    },
+    {
+      "name": "other user cannot see booking",
+      "passed": true
+    },
+    {
+      "name": "other user cannot review booking",
+      "passed": true
+    },
+    {
+      "name": "exact KIM administrator credentials work",
+      "passed": true
+    },
+    {
+      "name": "administrator sees contact information",
+      "passed": true
+    },
+    {
+      "name": "unknown status rejected",
+      "passed": true
+    },
+    {
+      "name": "assigned state is visible to owner",
+      "passed": true
+    },
+    {
+      "name": "review remains unavailable before completion",
+      "passed": true
+    },
+    {
+      "name": "administrator completes event",
+      "passed": true
+    },
+    {
+      "name": "empty review rejected",
+      "passed": true
+    },
+    {
+      "name": "oversized review rejected",
+      "passed": true
+    },
+    {
+      "name": "owner review saved after completion",
+      "passed": true
+    },
+    {
+      "name": "review XSS escaped in HTML",
+      "passed": true
+    },
+    {
+      "name": "duplicate review rejected",
+      "passed": true
+    },
+    {
+      "name": "completed event cannot be reopened",
+      "passed": true
+    },
+    {
+      "name": "review persists after a fresh login",
+      "passed": true
+    },
+    {
+      "name": "listing paginates at twelve cards",
+      "passed": true
+    },
+    {
+      "name": "status filter narrows result set",
+      "passed": true
+    },
+    {
+      "name": "room filter shows empty state",
+      "passed": true
+    },
+    {
+      "name": "date filter selects correct day",
+      "passed": true
+    },
+    {
+      "name": "logout revokes administrative access",
+      "passed": true
+    },
+    {
+      "name": "local asset available: bootstrap.min.css",
+      "passed": true
+    },
+    {
+      "name": "local asset available: app.css",
+      "passed": true
+    },
+    {
+      "name": "local asset available: app.js",
+      "passed": true
+    },
+    {
+      "name": "local asset available: mark.svg",
+      "passed": true
+    },
+    {
+      "name": "local asset available: auditorium.webp",
+      "passed": true
+    },
+    {
+      "name": "local asset available: coworking.webp",
+      "passed": true
+    },
+    {
+      "name": "local asset available: cinema.webp",
+      "passed": true
+    }
+  ],
+  "passed": 58,
+  "failed": 0
+}
