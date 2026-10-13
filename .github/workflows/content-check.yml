@@ -1,5 +1,7 @@
 name: Check guide changes
 on:
+  push:
+    branches: ['codex/**']
   pull_request:
     branches: [main]
 permissions:
@@ -21,3 +23,9 @@ jobs:
       - run: npm run check:pages
         env:
           VITE_BASE_PATH: /spravka/
+      - name: Keep the built site for branch review
+        uses: actions/upload-artifact@v4
+        with:
+          name: guide-preview
+          path: dist
+          if-no-files-found: error
