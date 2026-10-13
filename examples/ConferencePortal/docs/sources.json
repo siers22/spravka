@@ -1,0 +1,26 @@
+[
+  {
+    "file": "kim.pdf",
+    "url": "https://kpiot.ru/kpiot.ru/%D0%A1%D1%82%D1%83%D0%B4%D0%B5%D0%BD%D1%82%D1%83/%D0%93%D0%98%D0%90/09.02.07/%D0%9A%D0%98%D0%9C%2009.02.07-3-2027%20%D0%A2%D0%BE%D0%BC%201.pdf",
+    "sha256": "911c759a66010ce044e611f29ecbcaf4231acdf88864e2870e6a442e5ad48d7d",
+    "bytes": 760026,
+    "retrieved": "2026-10-13",
+    "publisher": "ИРПО; зеркало колледжа КПОТ"
+  },
+  {
+    "file": "recommendations.pdf",
+    "url": "https://kpiot.ru/kpiot.ru/%D0%A1%D1%82%D1%83%D0%B4%D0%B5%D0%BD%D1%82%D1%83/%D0%93%D0%98%D0%90/09.02.07/%D0%9C%D0%B5%D1%82%D0%BE%D0%B4_%D1%80%D0%B5%D0%BA%D0%BE%D0%BC%D0%B5%D0%BD%D0%B4%D0%B0%D1%86%D0%B8%D0%B8_%D0%92%D1%8B%D0%BF%D1%83%D1%81%D0%BA_09.02.07-3-2027.pdf",
+    "sha256": "ad2e7df573bae327973aebb77d6e5190c2047ac336c060dcfa106c1c60919872",
+    "bytes": 190068,
+    "retrieved": "2026-10-13",
+    "publisher": "ИРПО; зеркало колледжа КПОТ"
+  },
+  {
+    "file": "attachments.zip",
+    "url": "https://kpiot.ru/kpiot.ru/%D0%A1%D1%82%D1%83%D0%B4%D0%B5%D0%BD%D1%82%D1%83/%D0%93%D0%98%D0%90/09.02.07/%D0%9F%D1%80%D0%B8%D0%BB_1_%D0%9E%D0%97_%D0%9A%D0%98%D0%9C_09.02.07-3-2027.zip",
+    "sha256": "84b5e026083e73dd705cdf3b60c4ed5961d68dc8509024db3aff680d6014b609",
+    "bytes": 13720620,
+    "retrieved": "2026-10-13",
+    "publisher": "ИРПО; зеркало колледжа КПОТ"
+  }
+]

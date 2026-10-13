@@ -7,6 +7,10 @@ import 'prismjs/components/prism-sql'
 import 'prismjs/components/prism-json'
 import 'prismjs/components/prism-powershell'
 import 'prismjs/components/prism-markdown'
+import 'prismjs/components/prism-markup-templating'
+import 'prismjs/components/prism-php'
+import 'prismjs/components/prism-bash'
+import 'prismjs/components/prism-python'
 const props=defineProps({code:String,title:String,language:{type:String,default:'csharp'}})
 const expanded=ref(false), status=ref('')
 const long=computed(()=>props.code.split('\n').length>26)

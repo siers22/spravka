@@ -6612,6 +6612,2109 @@
           "downloadLabel": "Решение ShoeShop",
           "downloadType": "ZIP",
           "exampleSource": "ProgrammerExam_WPF_PostgreSQL_2027.zip"
+        },
+        {
+          "id": "web-developer",
+          "status": "published",
+          "title": "Разработчик веб и мультимедийных приложений",
+          "short": "Веб-разработчик",
+          "kim": "09.02.07-3-2027",
+          "subtitle": "От первой таблицы MySQL до работающего портала и мобильных страниц — по шагам.",
+          "domain": "Портал «Конференции.РФ»",
+          "description": "PHP, MySQL, регистрация, бронирование помещений, администратор, отзывы и мобильный дизайн.",
+          "verification": "Живой PHP/MySQL в Podman: 58 HTTP-проверок без ошибок и браузерный сценарий. Покрыты опубликованные требования базового образца; итоговые баллы выставляет эксперт.",
+          "paTime": "1 ч 30 мин",
+          "giaTime": "3 ч 30 мин",
+          "paCount": 1,
+          "paPoints": 25,
+          "giaPoints": 75,
+          "pages": 50,
+          "stack": "PHP · MySQL · Bootstrap · JS",
+          "dialectExamples": false,
+          "download": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/ConferencePortal_PHP_MySQL_2027.zip",
+          "downloadLabel": "Рабочий проект",
+          "downloadType": "ZIP",
+          "exampleSource": "ConferencePortal_PHP_MySQL_2027.zip",
+          "codes": {
+            "file:.gitignore": "config.local.php\n.env\ntests/results/\n",
+            "file:config.example.php": "<?php\n// Copy to config.local.php on a local exam server. Do not commit real credentials.\nreturn [\n    'host' => '127.0.0.1', 'port' => '3306', 'database' => 'conference_portal',\n    'user' => 'conference', 'password' => 'conference_dev',\n];\n",
+            "file:src/Database.php": "<?php\ndeclare(strict_types=1);\nnamespace Conference;\n\nuse PDO;\n\nfinal class Database\n{\n    public static function connect(): PDO\n    {\n        $config = ['host'=>'127.0.0.1', 'port'=>'3306', 'database'=>'conference_portal',\n            'user'=>'conference', 'password'=>'conference_dev'];\n        if (is_file(__DIR__.'/../config.local.php')) {\n            $config = array_replace($config, require __DIR__.'/../config.local.php');\n        }\n        foreach ($config as $key => &$value) {\n            $env = getenv('DB_'.strtoupper($key));\n            if ($env !== false) $value = $env;\n        }\n        unset($value);\n        return new PDO(\"mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset=utf8mb4\",\n            $config['user'], $config['password'], [\n                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,\n                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,\n                PDO::ATTR_EMULATE_PREPARES => false,\n            ]);\n    }\n}\n",
+            "file:bin/init.php": "<?php\ndeclare(strict_types=1);\nrequire __DIR__.'/../src/bootstrap.php';\nif (PHP_SAPI !== 'cli') { http_response_code(404); exit; }\n$db = Conference\\Database::connect();\n$db->exec(file_get_contents(__DIR__.'/../sql/schema.sql'));\n$admin = $db->prepare('INSERT IGNORE INTO users (login,password_hash,full_name,phone,email,role) VALUES (?,?,?,?,?,?)');\n$admin->execute(['Conf2027', password_hash('Demo77', PASSWORD_DEFAULT), 'Администратор портала',\n    '8(999)000-00-00', 'admin@conference.test', 'admin']);\n$room = $db->prepare('INSERT INTO rooms (name,description,image,capacity) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE description=VALUES(description),image=VALUES(image),capacity=VALUES(capacity)');\nforeach ([\n    ['Аудитория','Для лекций, выступлений и встреч с экспертами.','auditorium.webp',80],\n    ['Коворкинг','Открытое пространство для совместной работы и дискуссий.','coworking.webp',30],\n    ['Кинозал','Большой экран и удобные места для презентаций и показов.','cinema.webp',120],\n] as $data) $room->execute($data);\necho \"Готово: 4 таблицы, 3 помещения. Администратор Conf2027 / Demo77.\\n\";\n",
+            "file:Containerfile": "FROM docker.io/library/php:8.4-apache\nRUN docker-php-ext-install pdo_mysql\nCOPY . /var/www/portal\nENV APACHE_DOCUMENT_ROOT=/var/www/portal/public\nRUN sed -ri 's!/var/www/html!/var/www/portal/public!g' /etc/apache2/sites-available/*.conf /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf\nWORKDIR /var/www/portal\n",
+            "file:bin/podman.sh": "#!/usr/bin/env bash\nset -euo pipefail\ncd \"$(dirname \"$0\")/..\"\ncase \"${1:-up}\" in\n  up)\n    podman network exists spravka-web-net || podman network create spravka-web-net >/dev/null\n    podman volume exists spravka-web-data || podman volume create spravka-web-data >/dev/null\n    podman build -q -t localhost/spravka-conference:dev .\n    if ! podman container exists spravka-web-db; then\n      podman run -d --name spravka-web-db --network spravka-web-net \\\n        -e MYSQL_ROOT_PASSWORD=local_root_dev -e MYSQL_DATABASE=conference_portal \\\n        -e MYSQL_USER=conference -e MYSQL_PASSWORD=conference_dev \\\n        -v spravka-web-data:/var/lib/mysql docker.io/library/mysql:8.4 >/dev/null\n    else podman start spravka-web-db >/dev/null; fi\n    ready=false\n    for attempt in {1..90}; do\n      if podman exec -e MYSQL_PWD=conference_dev spravka-web-db mysql -uconference -Dconference_portal -e 'SELECT 1' >/dev/null 2>&1; then ready=true; break; fi\n      sleep 1\n    done\n    if [[ \"$ready\" != true ]]; then echo 'MySQL не готов. Проверьте podman logs spravka-web-db.' >&2; exit 1; fi\n    if ! podman container exists spravka-web-app; then\n      podman run -d --name spravka-web-app --network spravka-web-net \\\n        -p \"127.0.0.1:${PORT:-8087}:80\" -e DB_HOST=spravka-web-db \\\n        -e DB_DATABASE=conference_portal -e DB_USER=conference -e DB_PASSWORD=conference_dev \\\n        -v \"$PWD:/var/www/portal:ro\" localhost/spravka-conference:dev >/dev/null\n    else podman start spravka-web-app >/dev/null; fi\n    podman exec spravka-web-app php bin/init.php\n    echo \"Портал: http://127.0.0.1:${PORT:-8087}/\"\n    ;;\n  down)\n    for container in spravka-web-app spravka-web-db; do\n      if podman container exists \"$container\"; then podman stop \"$container\" >/dev/null; podman rm \"$container\" >/dev/null; fi\n    done\n    echo 'Контейнеры удалены. Данные сохранены в томе spravka-web-data.'\n    ;;\n  *) echo 'Использование: bash bin/podman.sh up|down' >&2; exit 2 ;;\nesac\n",
+            "file:public/index.php": "<?php\ndeclare(strict_types=1);\nrequire __DIR__.'/../src/bootstrap.php';\n\nini_set('session.use_strict_mode', '1');\nsession_set_cookie_params(['httponly'=>true, 'samesite'=>'Lax', 'secure'=>!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off']);\nsession_start();\n$_SESSION['csrf'] ??= bin2hex(random_bytes(32));\nheader('X-Content-Type-Options: nosniff');\nheader('X-Frame-Options: DENY');\nheader('Referrer-Policy: same-origin');\nheader('Cache-Control: no-store');\n\ntry {\n    (new Conference\\Portal(Conference\\Database::connect()))->run();\n} catch (Throwable $exception) {\n    error_log((string)$exception);\n    http_response_code(503);\n    echo '<!doctype html><html lang=\"ru\"><meta charset=\"utf-8\"><title>Сервис временно недоступен</title><h1>Не удалось открыть портал</h1><p>Проверьте подключение к базе и выполнение bin/init.php. Обновите страницу после восстановления сервиса.</p></html>';\n}\n",
+            "file:src/bootstrap.php": "<?php\ndeclare(strict_types=1);\n\ndate_default_timezone_set('Europe/Moscow');\nspl_autoload_register(function (string $class): void {\n    $prefix = 'Conference\\\\';\n    if (str_starts_with($class, $prefix)) {\n        $file = __DIR__.'/'.substr($class, strlen($prefix)).'.php';\n        if (is_file($file)) require $file;\n    }\n});\n\nfunction e(mixed $value): string { return htmlspecialchars((string)$value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }\nfunction input(string $key, bool $trim = true): string {\n    $value = $_POST[$key] ?? '';\n    return is_string($value) ? ($trim ? trim($value) : $value) : '';\n}\nfunction getValue(string $key): string {\n    $value = $_GET[$key] ?? '';\n    return is_string($value) ? trim($value) : '';\n}\nfunction redirect(string $page): never { header('Location: index.php?page='.$page, true, 303); exit; }\nfunction csrf(): string { return '<input type=\"hidden\" name=\"csrf\" value=\"'.e($_SESSION['csrf']).'\">'; }\n",
+            "file:views/message.php": "<section class=\"empty-state\"><h1><?= e($title) ?></h1><p><?= e($message) ?></p><a class=\"btn btn-primary\" href=\"index.php\">На главную</a></section>\n",
+            "file:sql/schema.sql": "-- Import into an empty database selected in MySQL / phpMyAdmin / Workbench.\n-- No DROP, no hard-coded database name; MySQL 8.0.16+ enforces CHECK.\nCREATE TABLE IF NOT EXISTS users (\n    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,\n    login VARCHAR(64) CHARACTER SET ascii COLLATE ascii_general_ci NOT NULL UNIQUE,\n    password_hash VARCHAR(255) NOT NULL,\n    full_name VARCHAR(150) NOT NULL,\n    phone VARCHAR(16) NOT NULL,\n    email VARCHAR(254) NOT NULL,\n    role ENUM('user','admin') NOT NULL DEFAULT 'user',\n    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n\nCREATE TABLE IF NOT EXISTS rooms (\n    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,\n    name VARCHAR(100) NOT NULL UNIQUE,\n    description VARCHAR(400) NOT NULL,\n    image VARCHAR(100) NOT NULL,\n    capacity SMALLINT UNSIGNED NOT NULL\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n\nCREATE TABLE IF NOT EXISTS bookings (\n    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,\n    user_id INT UNSIGNED NOT NULL,\n    room_id INT UNSIGNED NOT NULL,\n    starts_at DATETIME NOT NULL,\n    payment ENUM('onsite','sbp') NOT NULL,\n    status ENUM('new','assigned','completed') NOT NULL DEFAULT 'new',\n    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    CONSTRAINT fk_bookings_user FOREIGN KEY (user_id) REFERENCES users(id),\n    CONSTRAINT fk_bookings_room FOREIGN KEY (room_id) REFERENCES rooms(id),\n    INDEX ix_bookings_owner (user_id, id),\n    INDEX ix_bookings_status_date (status, starts_at),\n    INDEX ix_bookings_room (room_id, starts_at)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n\nCREATE TABLE IF NOT EXISTS reviews (\n    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,\n    booking_id INT UNSIGNED NOT NULL UNIQUE,\n    body VARCHAR(2000) NOT NULL,\n    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,\n    CONSTRAINT fk_reviews_booking FOREIGN KEY (booking_id) REFERENCES bookings(id),\n    CONSTRAINT ck_reviews_body CHECK (CHAR_LENGTH(TRIM(body)) BETWEEN 1 AND 2000)\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n",
+            "file:src/Portal.php": "<?php\ndeclare(strict_types=1);\nnamespace Conference;\n\nuse PDO;\nuse PDOException;\n\nfinal class Portal\n{\n    private UserRepository $users;\n    private BookingRepository $bookings;\n    private array $errors = [];\n    private array $old = [];\n    private array|false $user;\n\n    public function __construct(PDO $db)\n    {\n        $this->users = new UserRepository($db);\n        $this->bookings = new BookingRepository($db);\n        $this->user = $this->users->byId((int)($_SESSION['user_id'] ?? 0));\n    }\n\n    public function run(): void\n    {\n        $page = getValue('page') ?: ($this->user ? 'dashboard' : 'login');\n        if (!in_array($page, ['login','register','dashboard','booking','admin','logout'], true)) {\n            http_response_code(404); $this->render('message', ['title'=>'Страница не найдена', 'message'=>'Проверьте адрес или вернитесь в личный кабинет.']); return;\n        }\n        if (in_array($page, ['dashboard','booking','admin','logout'], true) && !$this->user) redirect('login');\n        if ($page === 'admin' && $this->user['role'] !== 'admin') {\n            http_response_code(403); $this->render('message', ['title'=>'Доступ запрещён', 'message'=>'Эта страница доступна администратору.']); return;\n        }\n        if ($_SERVER['REQUEST_METHOD'] === 'POST') {\n            $token = input('csrf');\n            if (!$token || !hash_equals($_SESSION['csrf'], $token)) {\n                http_response_code(403); $this->render('message', ['title'=>'Форма устарела', 'message'=>'Обновите страницу и повторите действие.']); return;\n            }\n            $this->post($page);\n        } elseif ($_SERVER['REQUEST_METHOD'] !== 'GET') {\n            header('Allow: GET, POST'); http_response_code(405); return;\n        }\n        if ($page === 'logout') redirect('dashboard');\n        if ($this->user && in_array($page, ['register','login'], true)) redirect('dashboard');\n        $data = [];\n        if (in_array($page, ['booking','dashboard','admin'], true)) $data['rooms'] = $this->bookings->rooms();\n        if (in_array($page, ['dashboard','admin'], true)) {\n            $status = getValue('status');\n            if (!array_key_exists($status, BookingRepository::STATUSES)) $status = '';\n            $room = max(0, (int)getValue('room'));\n            $date = getValue('date');\n            if (!Validation::date($date.'T00:00')) $date = '';\n            $data += ['status'=>$status, 'room'=>$room, 'date'=>$date,\n                'listing'=>$this->bookings->listing($page === 'admin' ? null : (int)$this->user['id'], $status, $room, $date, max(1, (int)getValue('p')))];\n        }\n        $this->render($page, $data);\n    }\n\n    private function post(string $page): void\n    {\n        if ($page === 'logout') {\n            $_SESSION = []; session_regenerate_id(true); redirect('login');\n        }\n        if ($page === 'register') {\n            foreach (['login','full_name','phone','email'] as $key) $this->old[$key] = input($key);\n            $data = $this->old + ['password'=>input('password', false)];\n            $this->errors = Validation::registration($data);\n            if (!$this->errors) {\n                try { $this->users->create($data); $this->flash('Аккаунт создан. Войдите с вашим логином и паролем.'); redirect('login'); }\n                catch (PDOException $e) { if (($e->errorInfo[1] ?? 0) !== 1062) throw $e; $this->errors['login'] = 'Этот логин уже занят.'; }\n            }\n        }\n        if ($page === 'login') {\n            $this->old['login'] = input('login');\n            $account = $this->users->byLogin($this->old['login']);\n            if (!$account || !password_verify(input('password', false), $account['password_hash'])) {\n                $this->errors['login'] = 'Неверный логин или пароль.';\n            } else {\n                session_regenerate_id(true); $_SESSION['user_id'] = (int)$account['id'];\n                $_SESSION['csrf'] = bin2hex(random_bytes(32)); redirect($account['role'] === 'admin' ? 'admin' : 'dashboard');\n            }\n        }\n        if ($page === 'booking') {\n            foreach (['room_id','starts_at','payment'] as $key) $this->old[$key] = input($key);\n            $roomIds = array_column($this->bookings->rooms(), 'id');\n            if (!ctype_digit($this->old['room_id']) || !in_array((int)$this->old['room_id'], $roomIds, true)) $this->errors['room_id'] = 'Выберите помещение из списка.';\n            $date = Validation::date($this->old['starts_at']);\n            if (!$date || $date < date('Y-m-d H:i:s')) $this->errors['starts_at'] = 'Выберите корректные будущие дату и время.';\n            if (!isset(BookingRepository::PAYMENTS[$this->old['payment']])) $this->errors['payment'] = 'Выберите способ оплаты.';\n            if (!$this->errors) {\n                $this->bookings->create((int)$this->user['id'], (int)$this->old['room_id'], $date, $this->old['payment']);\n                $this->flash('Заявка отправлена. Администратор рассмотрит её и назначит мероприятие.'); redirect('dashboard');\n            }\n        }\n        if ($page === 'admin') {\n            $status = input('status');\n            if (!isset(BookingRepository::STATUSES[$status]) || !ctype_digit(input('id')) || !$this->bookings->changeStatus((int)input('id'), $status)) {\n                $this->errors['form'] = 'Статус не изменён: проверьте заявку. Завершённые мероприятия доступны только для просмотра.';\n            } else { $this->flash('Статус заявки обновлён.'); redirect('admin'); }\n        }\n        if ($page === 'dashboard') {\n            $body = input('body');\n            if (!$body || Validation::length($body) > 2000 || !ctype_digit(input('id'))) $this->errors['form'] = 'Введите отзыв от 1 до 2000 символов.';\n            else {\n                try {\n                    if ($this->bookings->review((int)input('id'), (int)$this->user['id'], $body)) { $this->flash('Спасибо! Ваш отзыв сохранён.'); redirect('dashboard'); }\n                    $this->errors['form'] = 'Отзыв доступен только для вашей завершённой заявки.';\n                } catch (PDOException $e) {\n                    if (($e->errorInfo[1] ?? 0) !== 1062) throw $e;\n                    $this->errors['form'] = 'Вы уже оставили отзыв об этом мероприятии.';\n                }\n            }\n        }\n        if ($this->errors) http_response_code(422);\n    }\n\n    private function flash(string $text): void { $_SESSION['flash'] = $text; }\n\n    private function render(string $view, array $data = []): void\n    {\n        $user = $this->user; $errors = $this->errors; $old = $this->old;\n        $flash = $_SESSION['flash'] ?? ''; unset($_SESSION['flash']);\n        extract($data, EXTR_SKIP);\n        $titles = ['login'=>'Войти в аккаунт', 'register'=>'Создать аккаунт', 'dashboard'=>'Мои заявки', 'booking'=>'Забронировать помещение', 'admin'=>'Заявки пользователей'];\n        $title = $title ?? $titles[$view] ?? 'Конференции.РФ';\n        ob_start(); require __DIR__.'/../views/'.$view.'.php'; $content = ob_get_clean();\n        require __DIR__.'/../views/layout.php';\n    }\n}\n",
+            "file:src/UserRepository.php": "<?php\ndeclare(strict_types=1);\nnamespace Conference;\n\nuse PDO;\n\nfinal class UserRepository\n{\n    public function __construct(private PDO $db) {}\n\n    public function byLogin(string $login): array|false\n    {\n        $query = $this->db->prepare('SELECT * FROM users WHERE login = ?');\n        $query->execute([$login]);\n        return $query->fetch();\n    }\n\n    public function byId(int $id): array|false\n    {\n        $query = $this->db->prepare('SELECT id, login, full_name, role FROM users WHERE id = ?');\n        $query->execute([$id]);\n        return $query->fetch();\n    }\n\n    public function create(array $data): void\n    {\n        $query = $this->db->prepare('INSERT INTO users (login,password_hash,full_name,phone,email) VALUES (?,?,?,?,?)');\n        $query->execute([$data['login'], password_hash($data['password'], PASSWORD_DEFAULT),\n            $data['full_name'], $data['phone'], $data['email']]);\n    }\n}\n",
+            "file:views/fields.php": "<?php\n// Shared, escaped field renderer; no password is ever repopulated.\n$field = function (string $name, string $label, string $type='text', string $help='', string $attributes='') use ($errors, $old): void {\n    $invalid = isset($errors[$name]);\n    ?>\n    <div class=\"field\">\n        <label class=\"form-label\" for=\"<?= e($name) ?>\"><?= e($label) ?></label>\n        <div class=\"<?= $type==='password'?'password-wrap':'' ?>\">\n            <input class=\"form-control <?= $invalid?'is-invalid':'' ?>\" id=\"<?= e($name) ?>\" name=\"<?= e($name) ?>\" type=\"<?= e($type) ?>\" value=\"<?= $type==='password'?'':e($old[$name]??'') ?>\" required <?= $attributes ?> aria-describedby=\"<?= e($name) ?>-help <?= e($name) ?>-error\" <?= $invalid?'aria-invalid=\"true\"':'' ?>>\n            <?php if ($type==='password'): ?><button type=\"button\" class=\"password-toggle\" aria-controls=\"<?= e($name) ?>\" aria-pressed=\"false\">Показать</button><?php endif ?>\n        </div>\n        <small id=\"<?= e($name) ?>-help\" class=\"field-help\"><?= e($help) ?></small>\n        <span id=\"<?= e($name) ?>-error\" class=\"field-error\" <?= $invalid?'role=\"alert\"':'' ?>><?= e($errors[$name]??'') ?></span>\n    </div>\n    <?php\n};\n",
+            "file:views/register.php": "<?php require __DIR__.'/fields.php'; ?>\n<div class=\"register-grid\"><section class=\"register-story\"><span class=\"eyebrow\">ДАВАЙТЕ ЗНАКОМИТЬСЯ</span><h1>Место для<br>вашей следующей<br>встречи<span>.</span></h1><p>Один аккаунт — все возможности портала.</p><div class=\"story-benefit\"><b>01</b><div><h3>Выбирайте пространство</h3><p>Аудитория, коворкинг или кинозал.</p></div></div><div class=\"story-benefit\"><b>02</b><div><h3>Планируйте встречи</h3><p>Удобные дата, время и способ оплаты.</p></div></div><div class=\"story-benefit\"><b>03</b><div><h3>Следите за заявками</h3><p>Статусы и обратная связь в кабинете.</p></div></div></section>\n<section class=\"form-panel\"><span class=\"eyebrow\">НОВЫЙ АККАУНТ</span><h2>Регистрация</h2><p class=\"muted\">Все поля обязательны для заполнения.</p>\n<form method=\"post\" action=\"index.php?page=register\" class=\"portal-form\" novalidate>\n    <?= csrf() ?>\n    <?php $field('full_name','ФИО','text','Кириллица и пробелы', 'autocomplete=\"name\" maxlength=\"150\"'); ?>\n    <?php $field('login','Логин','text','От 6 латинских букв и цифр', 'autocomplete=\"username\" minlength=\"6\" maxlength=\"64\"'); ?>\n    <?php $field('password','Пароль','password','От 8 символов, максимум 72 байта', 'autocomplete=\"new-password\" minlength=\"8\" maxlength=\"72\"'); ?>\n    <div class=\"form-row\">\n    <?php $field('phone','Телефон','tel','8(999)123-45-67', 'autocomplete=\"tel\" maxlength=\"16\" placeholder=\"8(999)123-45-67\"'); ?>\n    <?php $field('email','Электронная почта','email','', 'autocomplete=\"email\" maxlength=\"254\"'); ?>\n    </div>\n    <button class=\"btn btn-primary w-100\" type=\"submit\">Создать пользователя <span aria-hidden=\"true\">↗</span></button>\n</form><p class=\"form-alternative\">Уже есть аккаунт? <a href=\"index.php?page=login\">Войти</a></p></section></div>\n",
+            "file:src/Validation.php": "<?php\ndeclare(strict_types=1);\nnamespace Conference;\n\nfinal class Validation\n{\n    public static function registration(array $data): array\n    {\n        $errors = [];\n        if (!preg_match('/\\A[A-Za-z0-9]{6,64}\\z/', $data['login']))\n            $errors['login'] = 'Логин: от 6 до 64 латинских букв и цифр.';\n        // Passwords are never trimmed: a space is a possible password character.\n        if (preg_match_all('/./us', $data['password']) < 8 || strlen($data['password']) > 72)\n            $errors['password'] = 'Пароль: от 8 символов, не более 72 байт.';\n        if (!preg_match('/\\A[А-Яа-яЁё]+(?: +[А-Яа-яЁё]+)*\\z/u', $data['full_name']) || self::length($data['full_name']) > 150)\n            $errors['full_name'] = 'ФИО: только кириллица и пробелы, до 150 символов.';\n        if (!preg_match('/\\A8\\([0-9]{3}\\)[0-9]{3}-[0-9]{2}-[0-9]{2}\\z/', $data['phone']))\n            $errors['phone'] = 'Телефон в формате 8(999)123-45-67.';\n        if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL) || strlen($data['email']) > 254)\n            $errors['email'] = 'Введите корректный адрес электронной почты.';\n        return $errors;\n    }\n\n    public static function length(string $value): int\n    {\n        return preg_match_all('/./us', $value) ?: 0;\n    }\n\n    public static function date(string $value): ?string\n    {\n        $date = \\DateTimeImmutable::createFromFormat('!Y-m-d\\TH:i', $value);\n        return $date && $date->format('Y-m-d\\TH:i') === $value\n            ? $date->format('Y-m-d H:i:s') : null;\n    }\n}\n",
+            "file:views/login.php": "<?php require __DIR__.'/fields.php'; ?>\n<div class=\"auth-grid\">\n    <section class=\"auth-story\"><span class=\"eyebrow\">ЛЮДИ. ИДЕИ. ПРОСТРАНСТВА.</span><h1>Большие идеи<br>начинаются<br>со встречи<span>.</span></h1><p>Найдите место для вашей конференции.<br>Мы позаботимся о пространстве.</p><img class=\"story-image\" src=\"assets/auditorium.webp\" alt=\"Пространство для конференции\" width=\"720\" height=\"480\"><span class=\"image-caption\">ОТ ПЕРВОГО ВОПРОСА — К НОВЫМ РЕШЕНИЯМ</span></section>\n    <section class=\"form-panel\"><span class=\"eyebrow\">С ВОЗВРАЩЕНИЕМ</span><h2>Войти в аккаунт</h2><p class=\"muted\">Ваши встречи и заявки — в одном месте.</p>\n        <form method=\"post\" action=\"index.php?page=login\" class=\"portal-form\" novalidate>\n            <?= csrf() ?>\n            <?php $field('login','Логин','text','', 'autocomplete=\"username\" maxlength=\"64\"'); ?>\n            <?php $field('password','Пароль','password','', 'autocomplete=\"current-password\" maxlength=\"72\"'); ?>\n            <button class=\"btn btn-primary w-100\" type=\"submit\">Войти <span aria-hidden=\"true\">↗</span></button>\n        </form>\n        <p class=\"form-alternative\">Еще не зарегистрированы? <a href=\"index.php?page=register\">Регистрация</a></p>\n        <div class=\"trust-note\"><span aria-hidden=\"true\">✓</span> Только ваши заявки. Только нужные встречи.</div>\n    </section>\n</div>\n",
+            "file:views/booking.php": "<header class=\"page-heading\"><a class=\"back-link\" href=\"index.php?page=dashboard\">← Мои заявки</a><span class=\"eyebrow\">НОВАЯ ВСТРЕЧА</span><h1>Выберите своё пространство<span>.</span></h1><p>Отправьте заявку — администратор поможет организовать мероприятие.</p></header>\n<div class=\"booking-grid\"><section class=\"room-grid\" aria-label=\"Наши помещения\">\n<?php foreach ($rooms as $r): ?><article class=\"room-card\"><img src=\"assets/<?= e($r['image']) ?>\" alt=\"<?= e($r['name']) ?>\" width=\"720\" height=\"480\" loading=\"lazy\"><div><span class=\"eyebrow\">ДО <?= e($r['capacity']) ?> УЧАСТНИКОВ</span><h2><?= e($r['name']) ?></h2><p><?= e($r['description']) ?></p><button class=\"room-choice\" type=\"button\" data-room=\"<?= e($r['id']) ?>\">Выбрать помещение ↗</button></div></article><?php endforeach ?>\n</section><section class=\"form-panel booking-panel\"><span class=\"eyebrow\">ДЕТАЛИ МЕРОПРИЯТИЯ</span><h2>Ваша заявка</h2><form method=\"post\" action=\"index.php?page=booking\" class=\"portal-form\" novalidate><?= csrf() ?>\n<div class=\"field\"><label class=\"form-label\" for=\"room_id\">Помещение</label><select class=\"form-select <?= isset($errors['room_id'])?'is-invalid':'' ?>\" name=\"room_id\" id=\"room_id\" required aria-describedby=\"room_id-error\"><option value=\"\">Выберите помещение</option><?php foreach ($rooms as $r): ?><option value=\"<?= e($r['id']) ?>\" <?= ($old['room_id']??'')===(string)$r['id']?'selected':'' ?>><?= e($r['name']) ?></option><?php endforeach ?></select><span class=\"field-error\" id=\"room_id-error\"><?= e($errors['room_id']??'') ?></span></div>\n<div class=\"field\"><label class=\"form-label\" for=\"starts_at\">Дата и время начала</label><input class=\"form-control <?= isset($errors['starts_at'])?'is-invalid':'' ?>\" type=\"datetime-local\" name=\"starts_at\" id=\"starts_at\" required min=\"<?= date('Y-m-d\\TH:i') ?>\" value=\"<?= e($old['starts_at']??'') ?>\" aria-describedby=\"starts_at-help starts_at-error\"><small class=\"field-help\" id=\"starts_at-help\">Московское время (UTC+3)</small><span class=\"field-error\" id=\"starts_at-error\"><?= e($errors['starts_at']??'') ?></span></div>\n<div class=\"field\"><label class=\"form-label\" for=\"payment\">Способ оплаты</label><select class=\"form-select <?= isset($errors['payment'])?'is-invalid':'' ?>\" name=\"payment\" id=\"payment\" required aria-describedby=\"payment-error\"><option value=\"\">Выберите способ оплаты</option><?php foreach (Conference\\BookingRepository::PAYMENTS as $key=>$label): ?><option value=\"<?= e($key) ?>\" <?= ($old['payment']??'')===$key?'selected':'' ?>><?= e($label) ?></option><?php endforeach ?></select><span class=\"field-error\" id=\"payment-error\"><?= e($errors['payment']??'') ?></span></div>\n<div class=\"booking-summary\" aria-live=\"polite\" id=\"booking-summary\">Выберите помещение и дату для вашей встречи.</div><button class=\"btn btn-primary w-100\" type=\"submit\">Отправить заявку ↗</button><p class=\"field-help\">Оплата согласуется после рассмотрения заявки. Портал не списывает деньги.</p>\n</form></section></div>\n",
+            "file:src/BookingRepository.php": "<?php\ndeclare(strict_types=1);\nnamespace Conference;\n\nuse PDO;\n\nfinal class BookingRepository\n{\n    public const STATUSES = ['new'=>'Новая', 'assigned'=>'Мероприятие назначено', 'completed'=>'Завершено'];\n    public const PAYMENTS = ['onsite'=>'При очном посещении', 'sbp'=>'Перевод по системе СБП'];\n\n    public function __construct(private PDO $db) {}\n\n    public function rooms(): array\n    {\n        return $this->db->query('SELECT * FROM rooms ORDER BY id')->fetchAll();\n    }\n\n    public function create(int $user, int $room, string $date, string $payment): void\n    {\n        $query = $this->db->prepare('INSERT INTO bookings (user_id,room_id,starts_at,payment) VALUES (?,?,?,?)');\n        $query->execute([$user, $room, $date, $payment]);\n    }\n\n    public function listing(?int $owner, string $status, int $room, string $date, int $page): array\n    {\n        $where = ['1=1']; $params = [];\n        if ($owner !== null) { $where[] = 'b.user_id = ?'; $params[] = $owner; }\n        if ($status !== '') { $where[] = 'b.status = ?'; $params[] = $status; }\n        if ($room > 0) { $where[] = 'b.room_id = ?'; $params[] = $room; }\n        if ($date !== '') { $where[] = 'b.starts_at >= ? AND b.starts_at < DATE_ADD(?, INTERVAL 1 DAY)'; $params[] = $date; $params[] = $date; }\n        $condition = implode(' AND ', $where);\n        $query = $this->db->prepare(\"SELECT COUNT(*) FROM bookings b WHERE $condition\");\n        $query->execute($params); $total = (int)$query->fetchColumn();\n        $page = max(1, min($page, max(1, (int)ceil($total / 12))));\n        $offset = ($page - 1) * 12;\n        // One joined query for an entire page, including optional reviews (no N+1).\n        $query = $this->db->prepare(\"SELECT b.*, r.name AS room_name, r.image, r.capacity,\n            u.full_name, u.phone, u.email, v.body AS review\n            FROM bookings b JOIN rooms r ON r.id=b.room_id JOIN users u ON u.id=b.user_id\n            LEFT JOIN reviews v ON v.booking_id=b.id WHERE $condition\n            ORDER BY b.id DESC LIMIT 12 OFFSET $offset\");\n        $query->execute($params);\n        return ['items'=>$query->fetchAll(), 'total'=>$total, 'page'=>$page, 'pages'=>(int)ceil($total / 12)];\n    }\n\n    public function changeStatus(int $id, string $status): bool\n    {\n        // A completed event stays completed: published feedback cannot become inconsistent.\n        $query = $this->db->prepare(\"UPDATE bookings SET status=? WHERE id=? AND status <> 'completed'\");\n        $query->execute([$status, $id]);\n        return $query->rowCount() > 0;\n    }\n\n    public function review(int $id, int $owner, string $body): bool\n    {\n        // Ownership and state are checked by the database, even for forged POST requests.\n        $query = $this->db->prepare(\"INSERT INTO reviews (booking_id,body)\n            SELECT id, ? FROM bookings WHERE id=? AND user_id=? AND status='completed'\");\n        $query->execute([$body, $id, $owner]);\n        return $query->rowCount() === 1;\n    }\n}\n",
+            "file:views/dashboard.php": "<?php $admin = false; require __DIR__.'/listing.php'; ?>\n",
+            "file:views/listing.php": "<?php use Conference\\BookingRepository as Booking; ?>\n<header class=\"page-heading heading-actions\"><div><span class=\"eyebrow\"><?= $admin?'ПАНЕЛЬ АДМИНИСТРАТОРА':'ЛИЧНЫЙ КАБИНЕТ' ?></span><h1><?= $admin?'Встречи под контролем':'Ваши встречи' ?><span>.</span></h1><p><?= $admin?'Рассматривайте заявки и помогайте идеям встретиться.':e($user['full_name']).', здесь всё, что вы запланировали.' ?></p></div><a class=\"btn btn-primary\" href=\"index.php?page=booking\">Новая заявка ↗</a></header>\n<form method=\"get\" action=\"index.php\" class=\"filters\"><input type=\"hidden\" name=\"page\" value=\"<?= $admin?'admin':'dashboard' ?>\">\n<div><label for=\"status\">Статус</label><select name=\"status\" id=\"status\" class=\"form-select\"><option value=\"\">Все статусы</option><?php foreach (Booking::STATUSES as $key=>$label): ?><option value=\"<?= e($key) ?>\" <?= $status===$key?'selected':'' ?>><?= e($label) ?></option><?php endforeach ?></select></div>\n<div><label for=\"room\">Помещение</label><select name=\"room\" id=\"room\" class=\"form-select\"><option value=\"\">Все помещения</option><?php foreach ($rooms as $r): ?><option value=\"<?= e($r['id']) ?>\" <?= $room===(int)$r['id']?'selected':'' ?>><?= e($r['name']) ?></option><?php endforeach ?></select></div>\n<div><label for=\"date\">Дата</label><input class=\"form-control\" type=\"date\" name=\"date\" id=\"date\" value=\"<?= e($date) ?>\"></div><button class=\"btn btn-outline-primary\" type=\"submit\">Применить</button><a class=\"reset-link\" href=\"index.php?page=<?= $admin?'admin':'dashboard' ?>\">Сбросить</a></form>\n<div class=\"results-heading\"><h2><?= $admin?'Все заявки':'Мои заявки' ?></h2><span>Найдено: <?= e($listing['total']) ?></span></div>\n<?php if (!$listing['items']): ?><section class=\"empty-state\"><span class=\"empty-symbol\" aria-hidden=\"true\">↗</span><h2><?= $status||$room||$date?'Заявки не найдены':'Ваша следующая встреча — впереди' ?></h2><p><?= $status||$room||$date?'Попробуйте изменить фильтры.':'Выберите помещение и отправьте свою первую заявку.' ?></p><a href=\"index.php?page=booking\" class=\"btn btn-primary\">Выбрать пространство</a></section><?php endif ?>\n<div class=\"bookings-grid\">\n<?php foreach ($listing['items'] as $b): ?><article class=\"booking-card\" data-booking-id=\"<?= e($b['id']) ?>\">\n<div class=\"booking-card-head\"><span class=\"request-number\">ЗАЯВКА № <?= e($b['id']) ?></span><span class=\"status status-<?= e($b['status']) ?>\"><?= e(Booking::STATUSES[$b['status']]) ?></span></div>\n<h3><?= e($b['room_name']) ?></h3><p class=\"booking-date\"><?= e(date('d.m.Y · H:i', strtotime($b['starts_at']))) ?> <small>МСК</small></p><p class=\"payment-label\"><?= e(Booking::PAYMENTS[$b['payment']]) ?></p>\n<?php if ($admin): ?><dl class=\"customer-details\"><dt>Организатор</dt><dd><?= e($b['full_name']) ?></dd><dt>Контакты</dt><dd><?= e($b['phone']) ?><br><?= e($b['email']) ?></dd></dl><?php endif ?>\n<?php if ($b['review'] !== null): ?><div class=\"review\"><b>Отзыв о мероприятии</b><p><?= nl2br(e($b['review'])) ?></p></div><?php elseif (!$admin && $b['status']==='completed'): ?><details class=\"review-editor\"><summary>Оставить отзыв</summary><form method=\"post\" action=\"index.php?page=dashboard\"><?= csrf() ?><input type=\"hidden\" name=\"id\" value=\"<?= e($b['id']) ?>\"><label for=\"review-<?= e($b['id']) ?>\">Как прошло мероприятие?</label><textarea class=\"form-control\" id=\"review-<?= e($b['id']) ?>\" name=\"body\" rows=\"3\" maxlength=\"2000\" required></textarea><button type=\"submit\" class=\"btn btn-outline-primary\">Отправить отзыв</button></form></details><?php elseif (!$admin): ?><p class=\"review-locked\">Отзыв можно оставить после завершения мероприятия.</p><?php endif ?>\n<?php if ($admin && $b['status']!=='completed'): ?><form class=\"status-form\" method=\"post\" action=\"index.php?page=admin\"><?= csrf() ?><input type=\"hidden\" name=\"id\" value=\"<?= e($b['id']) ?>\"><label class=\"visually-hidden\" for=\"state-<?= e($b['id']) ?>\">Статус заявки <?= e($b['id']) ?></label><select class=\"form-select\" id=\"state-<?= e($b['id']) ?>\" name=\"status\"><?php foreach (Booking::STATUSES as $key=>$label): ?><option value=\"<?= e($key) ?>\" <?= $b['status']===$key?'selected':'' ?>><?= e($label) ?></option><?php endforeach ?></select><button class=\"btn btn-outline-primary\" type=\"submit\">Сохранить</button></form><?php endif ?>\n</article><?php endforeach ?></div>\n<?php if ($listing['pages']>1): ?><nav aria-label=\"Страницы заявок\" class=\"pagination-bar\"><?php for ($i=1;$i<=$listing['pages'];$i++): ?><a class=\"<?= $listing['page']===$i?'current':'' ?>\" <?= $listing['page']===$i?'aria-current=\"page\"':'' ?> href=\"index.php?<?= e(http_build_query(['page'=>$admin?'admin':'dashboard','status'=>$status,'room'=>$room,'date'=>$date,'p'=>$i])) ?>\"><?= $i ?></a><?php endfor ?></nav><?php endif ?>\n",
+            "file:views/admin.php": "<?php $admin = true; require __DIR__.'/listing.php'; ?>\n",
+            "file:public/assets/media-manifest.json": "[\n  {\n    \"source\": \"media/1679169355_design-pibig-info-p-sovr.jpg\",\n    \"output\": \"auditorium.webp\",\n    \"beforeBytes\": 182127,\n    \"afterBytes\": 30894,\n    \"size\": [\n      720,\n      480\n    ],\n    \"quality\": 82\n  },\n  {\n    \"source\": \"media/7621e0c3c1df2e3322f6222ff94e67f3.jpg\",\n    \"output\": \"coworking.webp\",\n    \"beforeBytes\": 83014,\n    \"afterBytes\": 59000,\n    \"size\": [\n      720,\n      480\n    ],\n    \"quality\": 82\n  },\n  {\n    \"source\": \"media/2692984_1632745507.225.jpg\",\n    \"output\": \"cinema.webp\",\n    \"beforeBytes\": 711643,\n    \"afterBytes\": 42272,\n    \"size\": [\n      720,\n      480\n    ],\n    \"quality\": 82\n  }\n]\n",
+            "file:views/layout.php": "<!doctype html>\n<html lang=\"ru\">\n<head>\n    <meta charset=\"utf-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\n    <title><?= e($title) ?> · Конференции.РФ</title>\n    <link rel=\"icon\" href=\"assets/mark.svg\" type=\"image/svg+xml\">\n    <link rel=\"stylesheet\" href=\"assets/bootstrap.min.css\">\n    <link rel=\"stylesheet\" href=\"assets/app.css\">\n    <script src=\"assets/app.js\" defer></script>\n</head>\n<body>\n<a class=\"skip\" href=\"#main\">Перейти к содержанию</a>\n<header class=\"site-header\">\n    <a class=\"brand\" href=\"index.php\"><img src=\"assets/mark.svg\" width=\"38\" height=\"38\" alt=\"\"><span>Конференции<span class=\"brand-dot\">.РФ</span><small>ПРОСТРАНСТВО ДЛЯ ВАШИХ ИДЕЙ</small></span></a>\n    <nav aria-label=\"Основная навигация\">\n        <?php if ($user): ?>\n        <a href=\"index.php?page=dashboard\" <?= $view==='dashboard'?'aria-current=\"page\"':'' ?>>Мои заявки</a>\n        <?php if ($user['role']==='admin'): ?><a href=\"index.php?page=admin\" <?= $view==='admin'?'aria-current=\"page\"':'' ?>>Администратор</a><?php endif ?>\n        <form method=\"post\" action=\"index.php?page=logout\"><?= csrf() ?><button class=\"nav-logout\" type=\"submit\">Выйти</button></form>\n        <?php else: ?><span class=\"nav-note\">ВСТРЕЧАЙТЕСЬ. ОБСУЖДАЙТЕ. СОЗДАВАЙТЕ.</span><?php endif ?>\n    </nav>\n</header>\n<main id=\"main\" class=\"container portal-main\" tabindex=\"-1\">\n    <?php if ($flash): ?><div class=\"alert alert-success notice\" role=\"status\"><?= e($flash) ?></div><?php endif ?>\n    <?php if (isset($errors['form'])): ?><div class=\"alert alert-danger\" role=\"alert\"><?= e($errors['form']) ?></div><?php endif ?>\n    <?= $content ?>\n</main>\n<footer class=\"site-footer\"><span>© <?= date('Y') ?> Конференции.РФ</span><span>Место, где начинается диалог</span></footer>\n</body>\n</html>\n",
+            "file:public/assets/app.js": "'use strict';\n// Progressive enhancement: registration, filters and booking also work without JS.\ndocument.querySelectorAll('.password-toggle').forEach(button => {\n    button.addEventListener('click', () => {\n        const field = document.getElementById(button.getAttribute('aria-controls'));\n        const showing = field.type === 'password';\n        field.type = showing ? 'text' : 'password';\n        button.textContent = showing ? 'Скрыть' : 'Показать';\n        button.setAttribute('aria-pressed', String(showing));\n    });\n});\n\nconst roomSelect = document.getElementById('room_id');\nconst startField = document.getElementById('starts_at');\nconst summary = document.getElementById('booking-summary');\nfunction updateSummary() {\n    if (!summary) return;\n    const room = roomSelect.selectedOptions[0];\n    const date = startField.value ? new Date(startField.value) : null;\n    summary.textContent = roomSelect.value && date && !Number.isNaN(date.getTime())\n        ? `${room.textContent} · ${date.toLocaleString('ru-RU', {dateStyle: 'long', timeStyle: 'short'})} МСК`\n        : 'Выберите помещение и дату для вашей встречи.';\n}\ndocument.querySelectorAll('[data-room]').forEach(button => {\n    button.addEventListener('click', () => {\n        roomSelect.value = button.dataset.room;\n        updateSummary();\n        roomSelect.focus({preventScroll: true});\n        roomSelect.scrollIntoView({behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', block: 'center'});\n    });\n});\nroomSelect?.addEventListener('change', updateSummary);\nstartField?.addEventListener('change', updateSummary);\nupdateSummary();\n\n// Server validation is authoritative. This check only gives quicker inline feedback.\ndocument.querySelectorAll('.portal-form').forEach(form => {\n    form.addEventListener('submit', event => {\n        let first = null;\n        form.querySelectorAll('input[required], select[required]').forEach(field => {\n            const valid = field.value.trim() !== '' && field.validity.valid;\n            field.classList.toggle('is-invalid', !valid);\n            field.setAttribute('aria-invalid', String(!valid));\n            const error = document.getElementById(`${field.id}-error`);\n            if (error && !valid) error.textContent = field.validity.typeMismatch ? 'Проверьте формат значения.' : 'Заполните поле в указанном формате.';\n            else if (error && valid) error.textContent = '';\n            if (!valid && !first) first = field;\n        });\n        if (first) { event.preventDefault(); first.focus(); }\n    });\n});\n",
+            "file:public/assets/app.css": "@font-face{\n    font-family:'PT Sans';\n    src:url('PTSans-Regular.ttf') format('truetype');\n    font-weight:400;\n    font-display:swap\n}\n@font-face{\n    font-family:'PT Sans';\n    src:url('PTSans-Bold.ttf') format('truetype');\n    font-weight:700;\n    font-display:swap\n}\n@font-face{\n    font-family:'PT Sans';\n    src:url('PTSans-Italic.ttf') format('truetype');\n    font-style:italic;\n    font-display:swap\n}\n:root{\n    --ink:#0d47a1;\n    --muted:#6c757d;\n    --green:#0d47a1;\n    --paper:#f8f9fa;\n    --line:#dee2e6;\n    --bs-primary:#0d47a1;\n    --bs-body-color:#0d47a1;\n    --bs-body-font-family:'PT Sans',Arial,sans-serif\n}\n*{\n    box-sizing:border-box\n}\nbody{\n    background:var(--paper);\n    margin:0\n}\na{\n    color:var(--green);\n    text-underline-offset:4px\n}\nbutton,a,input,select,textarea{\n    touch-action:manipulation\n}\nbutton:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{\n    outline:3px solid #b68a39;\n    outline-offset:4px\n}\nh1,h2,h3{\n    font-weight:600;\n    letter-spacing:-.04em\n}\nh1{\n    font-size:clamp(2.1rem,4vw,3.8rem);\n    line-height:1.12\n}\nh1>span{\n    color:#007bff\n}\nh2{\n    font-size:1.8rem\n}\n.eyebrow{\n    display:block;\n    font-size:.65rem;\n    letter-spacing:.15em;\n    font-weight:700;\n    color:var(--green);\n    margin-bottom:18px\n}\n.muted,.page-heading p{\n    color:var(--muted);\n    line-height:1.7\n}\n.site-header{\n    max-width:1320px;\n    margin:auto;\n    padding:30px 42px;\n    display:flex;\n    justify-content:space-between;\n    align-items:center;\n    gap:20px;\n    border-bottom:1px solid var(--line)\n}\n.brand{\n    display:flex;\n    align-items:center;\n    gap:12px;\n    color:var(--ink);\n    font-size:1.23rem;\n    font-weight:700;\n    text-decoration:none;\n    white-space:nowrap\n}\n.brand-dot{\n    color:#007bff\n}\n.brand small{\n    display:block;\n    font-size:.48rem;\n    letter-spacing:.15em;\n    margin-top:4px;\n    font-weight:400\n}\n.site-header nav{\n    display:flex;\n    align-items:center;\n    gap:24px;\n    font-size:.85rem\n}\n.site-header nav a{\n    text-decoration:none\n}\n.site-header nav a[aria-current]{\n    text-decoration:underline;\n    font-weight:bold\n}\n.site-header form{\n    margin:0\n}\n.nav-note{\n    font-size:.57rem;\n    letter-spacing:.12em;\n    color:var(--muted)\n}\n.nav-logout{\n    background:none;\n    border:0;\n    color:var(--muted);\n    padding:0\n}\n.portal-main{\n    padding:50px 30px;\n    min-height:calc(100vh - 190px)\n}\n.site-footer{\n    max-width:1236px;\n    margin:auto;\n    padding:26px 30px;\n    display:flex;\n    justify-content:space-between;\n    gap:15px;\n    border-top:1px solid var(--line);\n    font-size:.7rem;\n    color:var(--muted)\n}\n.skip{\n    position:fixed;\n    left:15px;\n    top:-100px;\n    background:white;\n    z-index:100;\n    padding:15px\n}\n.skip:focus{\n    top:10px\n}\n.auth-grid{\n    display:grid;\n    grid-template-columns:1.12fr 1fr;\n    align-items:center;\n    gap:90px\n}\n.auth-story h1{\n    margin:0 0 24px\n}\n.auth-story p{\n    font-size:.92rem;\n    color:var(--muted);\n    line-height:1.8\n}\n.story-image{\n    display:block;\n    width:100%;\n    height:220px;\n    object-fit:cover;\n    border-radius:8px;\n    margin-top:30px\n}\n.image-caption{\n    display:block;\n    font-size:.5rem;\n    letter-spacing:.12em;\n    margin-top:12px;\n    color:var(--muted)\n}\n.form-panel{\n    padding:35px;\n    background:#fff;\n    border:1px solid var(--line);\n    border-radius:12px;\n    box-shadow:0 12px 40px #0d47a105\n}\n.form-panel>.eyebrow{\n    margin-bottom:12px\n}\n.form-panel>.muted{\n    font-size:.85rem\n}\n.portal-form{\n    margin-top:27px\n}\n.field{\n    margin-bottom:16px;\n    min-width:0\n}\n.form-label,.filters label{\n    font-size:.77rem;\n    font-weight:600;\n    margin-bottom:8px;\n    display:block\n}\n.form-control,.form-select{\n    font-size:.86rem;\n    min-height:45px;\n    border-color:#ced4da;\n    border-radius:6px;\n    color:var(--ink);\n    background-color:#fff\n}\n.form-control:focus,.form-select:focus{\n    border-color:var(--green);\n    box-shadow:0 0 0 .2rem #0d47a118\n}\n.field-help{\n    font-size:.66rem;\n    display:block;\n    color:var(--muted);\n    margin-top:6px\n}\n.field-error{\n    color:#a52929;\n    font-size:.72rem;\n    display:block;\n    margin-top:5px;\n    line-height:1.5\n}\n.btn{\n    font-size:.8rem;\n    font-weight:600;\n    padding:13px 20px;\n    border-radius:6px;\n    transition:transform .16s,background-color .16s\n}\n.btn-primary{\n    --bs-btn-bg:var(--green);\n    --bs-btn-border-color:var(--green);\n    --bs-btn-hover-bg:#0b3c87;\n    --bs-btn-hover-border-color:#0b3c87;\n    --bs-btn-active-bg:#0b3c87;\n    --bs-btn-active-border-color:#0b3c87\n}\n.btn-outline-primary{\n    --bs-btn-color:var(--green);\n    --bs-btn-border-color:#90b7e8;\n    --bs-btn-hover-bg:var(--green);\n    --bs-btn-hover-border-color:var(--green);\n    --bs-btn-active-bg:var(--green)\n}\n.btn:active{\n    transform:scale(.98)\n}\n.portal-form>.btn{\n    margin-top:12px;\n    display:flex;\n    justify-content:space-between\n}\n.form-alternative{\n    text-align:center;\n    font-size:.77rem;\n    line-height:1.8;\n    margin:25px 0 0;\n    color:var(--muted)\n}\n.form-alternative a{\n    font-weight:bold\n}\n.trust-note{\n    padding-top:22px;\n    margin-top:25px;\n    border-top:1px solid var(--line);\n    font-size:.7rem;\n    color:var(--muted)\n}\n.trust-note span{\n    margin-right:8px;\n    color:var(--green)\n}\n.password-wrap{\n    position:relative\n}\n.password-wrap input{\n    padding-right:90px\n}\n.password-toggle{\n    position:absolute;\n    right:11px;\n    top:12px;\n    border:0;\n    background:transparent;\n    font-size:.68rem;\n    color:var(--green)\n}\n.register-grid{\n    display:grid;\n    grid-template-columns:1fr 1.15fr;\n    gap:90px;\n    align-items:start\n}\n.register-story{\n    padding-top:30px\n}\n.register-story>p{\n    color:var(--muted);\n    margin:20px 0 40px\n}\n.story-benefit{\n    display:flex;\n    gap:20px;\n    margin:26px 0\n}\n.story-benefit>b{\n    font-size:.7rem;\n    color:#007bff;\n    padding-top:5px\n}\n.story-benefit h3{\n    font-size:1.05rem;\n    margin-bottom:7px\n}\n.story-benefit p{\n    font-size:.78rem;\n    color:var(--muted)\n}\n.form-row{\n    display:grid;\n    grid-template-columns:1fr 1fr;\n    gap:15px\n}\n.page-heading{\n    margin-bottom:35px\n}\n.page-heading h1{\n    font-size:clamp(2rem,3.4vw,3rem)\n}\n.page-heading p{\n    font-size:.88rem;\n    margin:16px 0\n}\n.heading-actions{\n    display:flex;\n    justify-content:space-between;\n    align-items:center;\n    gap:25px\n}\n.heading-actions>.btn{\n    flex-shrink:0\n}\n.back-link{\n    display:inline-block;\n    font-size:.75rem;\n    margin-bottom:30px\n}\n.booking-grid{\n    display:grid;\n    grid-template-columns:1.3fr 1fr;\n    gap:35px;\n    align-items:start\n}\n.room-grid{\n    display:grid;\n    gap:20px\n}\n.room-card{\n    display:grid;\n    grid-template-columns:180px 1fr;\n    background:white;\n    border:1px solid var(--line);\n    border-radius:9px;\n    overflow:hidden\n}\n.room-card img{\n    width:180px;\n    height:100%;\n    object-fit:cover\n}\n.room-card>div{\n    padding:23px\n}\n.room-card h2{\n    font-size:1.35rem\n}\n.room-card p{\n    font-size:.8rem;\n    line-height:1.65;\n    color:var(--muted)\n}\n.room-card .eyebrow{\n    font-size:.55rem;\n    margin-bottom:10px\n}\n.room-choice{\n    border:0;\n    background:none;\n    color:var(--green);\n    font-size:.75rem;\n    font-weight:600;\n    padding:0\n}\n.booking-panel{\n    position:sticky;\n    top:20px\n}\n.booking-summary{\n    background:#eaf3ff;\n    padding:15px;\n    border-radius:6px;\n    font-size:.75rem;\n    line-height:1.6\n}\n.filters{\n    display:flex;\n    align-items:end;\n    gap:15px;\n    background:white;\n    border:1px solid var(--line);\n    border-radius:9px;\n    padding:22px;\n    margin-bottom:35px\n}\n.filters>div{\n    flex:1;\n    min-width:0\n}\n.filters .btn{\n    min-height:45px\n}\n.reset-link{\n    font-size:.75rem;\n    margin-bottom:14px\n}\n.results-heading{\n    display:flex;\n    justify-content:space-between;\n    align-items:center;\n    margin-bottom:20px\n}\n.results-heading h2{\n    font-size:1.2rem;\n    margin:0\n}\n.results-heading>span{\n    font-size:.73rem;\n    color:var(--muted)\n}\n.bookings-grid{\n    display:grid;\n    grid-template-columns:repeat(2,minmax(0,1fr));\n    gap:22px\n}\n.booking-card{\n    padding:26px;\n    background:white;\n    border:1px solid var(--line);\n    border-radius:9px;\n    animation:arrive .25s ease-out;\n    min-width:0\n}\n.booking-card-head{\n    display:flex;\n    align-items:center;\n    justify-content:space-between;\n    gap:10px;\n    margin-bottom:24px\n}\n.request-number{\n    font-size:.57rem;\n    letter-spacing:.1em;\n    color:var(--muted)\n}\n.status{\n    padding:5px 9px;\n    border-radius:20px;\n    font-size:.6rem;\n    line-height:1.5;\n    display:inline-block\n}\n.status-new{\n    background:#fff1cf;\n    color:#805c11\n}\n.status-assigned{\n    background:#e9eff9;\n    color:#315a8d\n}\n.status-completed{\n    background:#e9f1e1;\n    color:#35613e\n}\n.booking-card h3{\n    font-size:1.5rem\n}\n.booking-date{\n    font-size:.95rem;\n    margin:15px 0 8px\n}\n.booking-date small{\n    font-size:.6rem;\n    color:var(--muted)\n}\n.payment-label{\n    font-size:.73rem;\n    color:var(--muted)\n}\n.customer-details{\n    font-size:.77rem;\n    border-top:1px solid var(--line);\n    padding-top:17px;\n    overflow-wrap:anywhere\n}\n.customer-details dt{\n    font-size:.65rem;\n    color:var(--muted);\n    font-weight:400;\n    margin:12px 0 4px\n}\n.customer-details dd{\n    margin:0;\n    line-height:1.7\n}\n.status-form{\n    display:flex;\n    gap:10px;\n    border-top:1px solid var(--line);\n    padding-top:20px;\n    margin-top:20px\n}\n.status-form select{\n    min-width:0;\n    flex:1;\n    font-size:.74rem\n}\n.status-form button{\n    flex-shrink:0;\n    font-size:.72rem;\n    padding:10px\n}\n.review-locked{\n    font-size:.68rem;\n    line-height:1.7;\n    color:var(--muted);\n    border-top:1px solid var(--line);\n    padding-top:15px;\n    margin-top:20px\n}\n.review{\n    padding:17px;\n    background:#f8f9fa;\n    border-radius:5px;\n    margin-top:20px;\n    font-size:.8rem;\n    overflow-wrap:anywhere;\n    white-space:normal\n}\n.review b{\n    font-size:.7rem\n}\n.review p{\n    margin:10px 0 0;\n    line-height:1.8\n}\n.review-editor{\n    margin-top:20px;\n    border-top:1px solid var(--line);\n    padding-top:18px;\n    font-size:.78rem\n}\n.review-editor summary{\n    color:var(--green);\n    cursor:pointer\n}\n.review-editor label{\n    display:block;\n    margin:15px 0 8px\n}\n.review-editor .btn{\n    margin-top:12px\n}\n.empty-state{\n    text-align:center;\n    padding:60px 20px;\n    border:1px dashed #b6c8df;\n    border-radius:10px\n}\n.empty-state h2{\n    font-size:1.5rem\n}\n.empty-state p{\n    color:var(--muted);\n    font-size:.85rem;\n    margin:18px 0 24px\n}\n.empty-symbol{\n    display:block;\n    color:#007bff;\n    font-size:3rem;\n    margin-bottom:20px\n}\n.pagination-bar{\n    display:flex;\n    gap:8px;\n    flex-wrap:wrap;\n    justify-content:center;\n    margin:30px 0\n}\n.pagination-bar a{\n    min-width:38px;\n    text-align:center;\n    padding:10px;\n    border:1px solid var(--line);\n    background:white;\n    border-radius:5px;\n    font-size:.8rem;\n    text-decoration:none\n}\n.pagination-bar a.current{\n    background:var(--green);\n    color:white\n}\n.notice{\n    animation:arrive .25s ease-out;\n    font-size:.85rem\n}\n@keyframes arrive{\n    from{\n        opacity:0;\n        transform:translateY(7px)\n    }\n    to{\n        opacity:1;\n        transform:translateY(0)\n    }\n}\n@media(max-width:991px){\n    .auth-grid,.register-grid{\n        gap:35px\n    }\n    .site-header{\n        padding:23px\n    }\n    .auth-story h1{\n        font-size:2.5rem\n    }\n    .booking-grid{\n        grid-template-columns:1fr\n    }\n    .booking-panel{\n        position:static\n    }\n    .room-grid{\n        grid-template-columns:repeat(3,1fr)\n    }\n    .room-card{\n        display:block\n    }\n    .room-card img{\n        width:100%;\n        height:150px\n    }\n    .room-card>div{\n        padding:18px\n    }\n    .room-card p{\n        min-height:80px\n    }\n}\n@media(max-width:600px){\n    .site-header{\n        padding:19px 20px;\n        align-items:flex-start;\n        flex-direction:column;\n        gap:18px\n    }\n    .brand{\n        font-size:1.12rem\n    }\n    .brand small{\n        font-size:.43rem\n    }\n    .nav-note{\n        font-size:.48rem\n    }\n    .site-header nav{\n        gap:20px;\n        flex-wrap:wrap;\n        font-size:.74rem\n    }\n    .portal-main{\n        padding:30px 20px\n    }\n    .auth-grid,.register-grid{\n        display:flex;\n        flex-direction:column;\n        gap:25px;\n        align-items:stretch\n    }\n    .auth-story h1{\n        font-size:2.3rem;\n        line-height:1.12;\n        margin-bottom:18px\n    }\n    .auth-story p{\n        font-size:.8rem;\n        margin-bottom:0\n    }\n    .auth-story .story-image,.image-caption{\n        display:none\n    }\n    .auth-story .eyebrow{\n        font-size:.55rem;\n        margin-bottom:14px\n    }\n    .form-panel{\n        padding:24px 22px;\n        border-radius:9px\n    }\n    .form-panel h2{\n        font-size:1.6rem\n    }\n    .register-story{\n        padding-top:0\n    }\n    .register-story h1{\n        font-size:2rem\n    }\n    .register-story>p{\n        font-size:.8rem;\n        margin:15px 0 0\n    }\n    .story-benefit{\n        display:none\n    }\n    .form-row{\n        grid-template-columns:1fr;\n        gap:0\n    }\n    .site-footer{\n        padding:23px 20px;\n        font-size:.6rem;\n        flex-direction:column;\n        gap:8px\n    }\n    .heading-actions{\n        align-items:start;\n        flex-direction:column;\n        gap:8px\n    }\n    .page-heading h1{\n        font-size:2rem\n    }\n    .page-heading p{\n        font-size:.8rem\n    }\n    .eyebrow{\n        font-size:.57rem\n    }\n    .booking-grid{\n        gap:24px\n    }\n    .room-grid{\n        display:grid;\n        grid-template-columns:1fr;\n        gap:15px\n    }\n    .room-card{\n        display:grid;\n        grid-template-columns:110px minmax(0,1fr)\n    }\n    .room-card img{\n        width:110px;\n        height:100%;\n        min-height:150px\n    }\n    .room-card>div{\n        padding:18px 15px\n    }\n    .room-card p{\n        min-height:0;\n        font-size:.73rem\n    }\n    .room-card h2{\n        font-size:1.2rem\n    }\n    .filters{\n        padding:18px;\n        display:grid;\n        grid-template-columns:1fr 1fr;\n        gap:14px\n    }\n    .filters>div:nth-of-type(3){\n        grid-column:1/-1\n    }\n    .filters .form-select,.filters .form-control{\n        font-size:.76rem\n    }\n    .filters label{\n        font-size:.7rem\n    }\n    .filters .btn{\n        padding:11px 13px\n    }\n    .reset-link{\n        margin:0;\n        text-align:center\n    }\n    .bookings-grid{\n        grid-template-columns:1fr;\n        gap:16px\n    }\n    .booking-card{\n        padding:22px\n    }\n    .booking-card-head{\n        gap:8px\n    }\n    .status{\n        font-size:.56rem;\n        padding:5px 8px\n    }\n    .request-number{\n        font-size:.52rem\n    }\n    .status-form{\n        flex-wrap:wrap\n    }\n    .status-form select{\n        flex-basis:100%\n    }\n    .status-form button{\n        width:100%\n    }\n    .empty-state{\n        padding:35px 18px\n    }\n    .empty-state h2{\n        font-size:1.3rem\n    }\n}\n@media(prefers-reduced-motion:reduce){\n    *,*::before,*::after{\n        animation:none!important;\n        transition:none!important;\n        scroll-behavior:auto!important\n    }\n}\n/* Typography and palette from the supplied style guide. */\nh1,.page-heading h1,.auth-story h1,.register-story h1{\n    font-size:36px;\n    font-weight:700\n}\nh2,.form-panel h2,.room-card h2,.results-heading h2,.empty-state h2{\n    font-size:24px;\n    font-weight:700\n}\nh3,.story-benefit h3,.booking-card h3{\n    font-size:18px;\n    font-weight:700\n}\nbody{\n    font-size:16px\n}\n.auth-story p,.register-story>p,.room-card p,.page-heading p,.form-panel>.muted,.story-benefit p,.form-alternative,.portal-form input,.portal-form select,.review{\n    font-size:16px\n}\n.field-help,.field-error,.review-locked,.image-caption,.trust-note,.site-footer{\n    font-size:12px;\n    font-style:italic\n}\n.eyebrow,.status,.request-number{\n    font-size:12px\n}\n.btn,.form-label,.filters label,.room-choice{\n    font-size:16px\n}\n.brand small{\n    font-size:10px\n}\n.nav-note{\n    font-size:12px\n}\n.brand-dot,h1>span{\n    color:#007bff\n}\n.password-toggle{\n    font-size:12px;\n    top:13px\n}\n.heading-actions .btn{\n    white-space:nowrap\n}\n@media(max-width:600px){\n    h1,.page-heading h1,.auth-story h1,.register-story h1{\n        font-size:36px\n    }\n    .booking-card-head{\n        align-items:flex-start\n    }\n    .status{\n        max-width:175px\n    }\n    .room-card .eyebrow{\n        font-size:12px\n    }\n    .room-card{\n        grid-template-columns:100px minmax(0,1fr)\n    }\n    .room-card img{\n        width:100px\n    }\n    .nav-note{\n        font-size:10px\n    }\n    .status-form button{\n        font-size:16px\n    }\n}\n@media(min-width:601px) and (max-width:767px){\n    .auth-grid,.register-grid{\n        grid-template-columns:1fr\n    }\n    .auth-story .story-image,.image-caption{\n        display:none\n    }\n    .auth-story h1 br,.register-story h1 br{\n        display:none\n    }\n    .register-story .story-benefit{\n        display:none\n    }\n    .register-story>p{\n        margin-bottom:0\n    }\n}\n",
+            "file:bin/check-podman.sh": "#!/usr/bin/env bash\nset -euo pipefail\ncd \"$(dirname \"$0\")/..\"\n# Tests never touch conference_portal; they create and remove their own database.\ntest_db=\"conference_test_$(date +%s)_$$\"\ntest_container=\"spravka-web-test-$$\"\nmkdir -p tests/results\ncleanup() {\n  podman rm -f \"$test_container\" >/dev/null 2>&1 || true\n  podman exec -e MYSQL_PWD=local_root_dev spravka-web-db mysql -uroot \\\n    -e \"DROP DATABASE IF EXISTS $test_db;\" >/dev/null 2>&1 || true\n}\ntrap cleanup EXIT\npodman exec -e MYSQL_PWD=local_root_dev spravka-web-db mysql -uroot \\\n  -e \"CREATE DATABASE $test_db CHARACTER SET utf8mb4; GRANT ALL ON $test_db.* TO 'conference'@'%';\"\npodman run -d --name \"$test_container\" --network spravka-web-net \\\n  -p \"127.0.0.1:${TEST_PORT:-8088}:80\" -e DB_HOST=spravka-web-db \\\n  -e \"DB_DATABASE=$test_db\" -e DB_USER=conference -e DB_PASSWORD=conference_dev \\\n  -v \"$PWD:/var/www/portal:ro\" localhost/spravka-conference:dev >/dev/null\npodman exec \"$test_container\" php bin/init.php\npodman exec \"$test_container\" sh -c 'find src views public bin -name \"*.php\" -exec php -l {} \\;'\npodman run --rm --network host -e \"PORTAL_URL=http://127.0.0.1:${TEST_PORT:-8088}/\" \\\n  -v \"$PWD/tests:/tests:ro\" -v \"$PWD/tests/results:/results\" \\\n  docker.io/library/python:3.13-slim python /tests/http_checks.py\n",
+            "file:tests/http_checks.py": "\"\"\"Real HTTP checks against a fresh disposable MySQL database (stdlib only).\"\"\"\nimport datetime, http.cookiejar, json, os, re, time, urllib.request, urllib.parse, urllib.error\nfrom pathlib import Path\n\nBASE = os.environ.get('PORTAL_URL', 'http://127.0.0.1:8088/')\nresults = []\n\ndef check(name, condition):\n    results.append({'name': name, 'passed': bool(condition)})\n    if not condition:\n        raise AssertionError(name)\n\nclass Client:\n    def __init__(self):\n        self.jar = http.cookiejar.CookieJar()\n        self.http = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(self.jar))\n    def request(self, page, data=None):\n        url = BASE + 'index.php?' + urllib.parse.urlencode({'page': page})\n        request = urllib.request.Request(url, data=urllib.parse.urlencode(data).encode() if data is not None else None)\n        try:\n            response = self.http.open(request, timeout=15)\n        except urllib.error.HTTPError as error:\n            response = error\n        return response.status, response.read().decode(), dict(response.headers)\n    def post(self, page, data, token=True):\n        if token:\n            _, html, _ = self.request(page)\n            data = dict(data, csrf=re.search(r'name=\"csrf\" value=\"([a-f0-9]+)\"', html)[1])\n        return self.request(page, data)\n\ndef run():\n    guest, alice, bob, admin = (Client() for _ in range(4))\n    code, html, headers = guest.request('login')\n    check('login responds with UTF-8 page', code == 200 and 'Войти в аккаунт' in html)\n    check('session cookie is HttpOnly and SameSite=Lax', all(c.has_nonstandard_attr('HttpOnly') and c.get_nonstandard_attr('SameSite') == 'Lax' for c in guest.jar))\n    check('private responses cannot be cached', headers.get('Cache-Control') == 'no-store')\n    check('guest is redirected to login', 'Войти в аккаунт' in guest.request('admin')[1])\n    check('unknown page returns 404', guest.request('missing')[0] == 404)\n    check('missing CSRF returns 403', guest.post('register', {}, token=False)[0] == 403)\n    code, html, _ = guest.post('register', {})\n    check('all five registration fields validated server-side', code == 422 and html.count('is-invalid') == 5)\n    original = dict(login='WebAlice', password='GoodPass77', full_name='Иванова Алиса Сергеевна', phone='8(999)123-45-67', email='alice@example.test')\n    for key, value in [('login','abc'), ('login','русский'), ('login','user_777'), ('password','1234567'), ('full_name','Alice'), ('phone','+79991234567'), ('email','wrong')]:\n        code, html, _ = guest.post('register', dict(original, **{key:value}))\n        check('registration rejects invalid '+key+' '+value, code == 422)\n    check('valid registration creates account', 'Аккаунт создан' in alice.post('register', original)[1])\n    code, html, _ = bob.post('register', original)\n    check('duplicate login returns inline error and preserves fields', code == 422 and 'Этот логин уже занят' in html and 'Иванова Алиса' in html)\n    code, html, _ = bob.post('register', dict(original, login='webalice'))\n    check('login uniqueness is case-insensitive', code == 422)\n    check('second user registration works', bob.post('register', dict(original, login='WebBobby', email='bob@example.test'))[0] == 200)\n    check('incorrect password returns inline error', alice.post('login', {'login':'WebAlice','password':'bad'})[0] == 422)\n    check('SQL injection cannot bypass login', guest.post('login', {'login':\"' OR 1=1 --\", 'password':'bad'})[0] == 422)\n    before = next(c.value for c in alice.jar if c.name == 'PHPSESSID')\n    code, html, _ = alice.post('login', {'login':'WebAlice','password':'GoodPass77'})\n    check('valid login shows personal dashboard', code == 200 and 'Ваши встречи' in html)\n    check('login rotates session identifier', next(c.value for c in alice.jar if c.name=='PHPSESSID') != before)\n    check('regular user cannot access administration', alice.request('admin')[0] == 403)\n    check('regular user cannot forge status POST', alice.post('admin', {'id':1,'status':'completed'}, token=False)[0] == 403)\n    future = (datetime.datetime.now() + datetime.timedelta(days=7)).strftime('%Y-%m-%dT14:30')\n    booking = dict(room_id='1', starts_at=future, payment='sbp')\n    for changes, name in [({'room_id':'99999'},'unknown room'), ({'payment':'cash'},'unknown payment'), ({'starts_at':'2026-02-30T14:30'},'impossible date'), ({'starts_at':'2000-01-01T14:30'},'past date'), ({'room_id':'1 OR 1=1'},'injected room')]:\n        check('booking rejects '+name, alice.post('booking', dict(booking, **changes))[0] == 422)\n    code, html, _ = alice.post('booking', booking)\n    check('valid booking starts as new', code == 200 and 'Новая' in html and 'Заявка отправлена' in html)\n    booking_id = re.search(r'data-booking-id=\"(\\d+)\"', html)[1]\n    check('early review rejected on server', alice.post('dashboard', {'id':booking_id,'body':'Рано'})[0] == 422)\n    bob.post('login', {'login':'WebBobby','password':'GoodPass77'})\n    check('other user cannot see booking', 'data-booking-id' not in bob.request('dashboard')[1])\n    check('other user cannot review booking', bob.post('dashboard', {'id':booking_id,'body':'Чужой отзыв'})[0] == 422)\n    code, html, _ = admin.post('login', {'login':'Conf2027','password':'Demo77'})\n    check('exact KIM administrator credentials work', code == 200 and 'ПАНЕЛЬ АДМИНИСТРАТОРА' in html)\n    check('administrator sees contact information', 'alice@example.test' in html and '8(999)123-45-67' in html)\n    check('unknown status rejected', admin.post('admin', {'id':booking_id,'status':'hacked'})[0] == 422)\n    check('assigned state is visible to owner', admin.post('admin', {'id':booking_id,'status':'assigned'})[0] == 200 and 'Мероприятие назначено' in alice.request('dashboard')[1])\n    check('review remains unavailable before completion', alice.post('dashboard', {'id':booking_id,'body':'Рано'})[0] == 422)\n    check('administrator completes event', admin.post('admin', {'id':booking_id,'status':'completed'})[0] == 200)\n    check('empty review rejected', alice.post('dashboard', {'id':booking_id,'body':'   '})[0] == 422)\n    check('oversized review rejected', alice.post('dashboard', {'id':booking_id,'body':'а'*2001})[0] == 422)\n    code, html, _ = alice.post('dashboard', {'id':booking_id,'body':'Отличная встреча <script>alert(1)</script>'})\n    check('owner review saved after completion', code == 200 and 'Спасибо!' in html)\n    check('review XSS escaped in HTML', '&lt;script&gt;alert(1)&lt;/script&gt;' in html and '<script>alert(1)</script>' not in html)\n    check('duplicate review rejected', alice.post('dashboard', {'id':booking_id,'body':'Еще один'})[0] == 422)\n    check('completed event cannot be reopened', admin.post('admin', {'id':booking_id,'status':'new'})[0] == 422)\n    check('review persists after a fresh login', alice.post('logout', {})[0] == 200 and 'Отличная встреча' in alice.post('login', {'login':'WebAlice','password':'GoodPass77'})[1])\n    # Exercise more than one page, not only the initial empty listing.\n    for _ in range(13): alice.post('booking', booking)\n    code, html, _ = alice.request('dashboard')\n    check('listing paginates at twelve cards', html.count('data-booking-id') == 12 and 'Страницы заявок' in html)\n    response = admin.http.open(BASE+'index.php?page=admin&status=completed').read().decode()\n    check('status filter narrows result set', response.count('data-booking-id') == 1)\n    response = admin.http.open(BASE+'index.php?page=admin&room=2').read().decode()\n    check('room filter shows empty state', 'Заявки не найдены' in response)\n    response = admin.http.open(BASE+'index.php?page=admin&date='+future[:10]).read().decode()\n    check('date filter selects correct day', 'Найдено: 14' in response)\n    check('logout revokes administrative access', admin.post('logout', {})[0] == 200 and 'Войти в аккаунт' in admin.request('admin')[1])\n    for asset in ['bootstrap.min.css','app.css','app.js','mark.svg','auditorium.webp','coworking.webp','cinema.webp']:\n        check('local asset available: '+asset, guest.http.open(BASE+'assets/'+asset).status == 200)\n\ntry:\n    run()\nexcept Exception as error:\n    results.append({'name':'suite completed without unhandled errors: '+str(error), 'passed':False})\n    raise\nfinally:\n    output = Path('/results/http-results.json')\n    output.parent.mkdir(parents=True, exist_ok=True)\n    output.write_text(json.dumps({'checked_at':datetime.datetime.now(datetime.timezone.utc).isoformat(),'checks':results,'passed':sum(x['passed'] for x in results),'failed':sum(not x['passed'] for x in results)}, ensure_ascii=False, indent=2)+'\\n')\n    print(json.dumps({'passed':sum(x['passed'] for x in results),'failed':sum(not x['passed'] for x in results)}, ensure_ascii=False))\n"
+          },
+          "glossary": [
+            [
+              "Full stack",
+              "Браузерный интерфейс, серверный код и база работают как одна система."
+            ],
+            [
+              "PHP",
+              "Серверный язык: обрабатывает формы и возвращает HTML. Исходник не должен передаваться браузеру."
+            ],
+            [
+              "PDO",
+              "Интерфейс PHP для работы с БД через подготовленные запросы."
+            ],
+            [
+              "ООП",
+              "Классы разделяют обязанности: контроллер, валидация и репозитории."
+            ],
+            [
+              "Репозиторий данных",
+              "Класс, который выполняет запросы к конкретным таблицам."
+            ],
+            [
+              "MySQL",
+              "Сервер реляционной БД; хранит пользователей, заявки и отзывы."
+            ],
+            [
+              "PK",
+              "Первичный ключ: уникальный идентификатор строки."
+            ],
+            [
+              "FK",
+              "Внешний ключ: связь с существующей строкой родительской таблицы."
+            ],
+            [
+              "UNIQUE",
+              "Ограничение, запрещающее повторное значение: например, логин или отзыв одной заявки."
+            ],
+            [
+              "JOIN",
+              "Получение связанных данных нескольких таблиц одним запросом."
+            ],
+            [
+              "Индекс",
+              "Структура для ускорения подходящих условий поиска и сортировки."
+            ],
+            [
+              "Сессия",
+              "Серверное состояние пользователя; браузер хранит идентификатор в cookie."
+            ],
+            [
+              "Роль",
+              "Права аккаунта: обычный пользователь или администратор. Сервер читает роль из БД."
+            ],
+            [
+              "CSRF",
+              "Подделка запроса от имени сессии; скрытый непредсказуемый токен помогает её отклонить."
+            ],
+            [
+              "XSS",
+              "Выполнение чужого скрипта при небезопасном выводе. Пользовательский текст экранируется."
+            ],
+            [
+              "Хеш пароля",
+              "Необратимое представление пароля для проверки через password_verify."
+            ],
+            [
+              "Валидация",
+              "Проверка обязательности, формата, длины и допустимости данных до сохранения."
+            ],
+            [
+              "Bootstrap",
+              "Локальная библиотека компонентов CSS; в этом проекте не требует npm."
+            ],
+            [
+              "Адаптивность",
+              "Перестроение интерфейса под ширину экрана без потери функций."
+            ],
+            [
+              "WebP",
+              "Формат изображения для уменьшения размера передаваемых фотографий."
+            ],
+            [
+              "XCF",
+              "Рабочий формат GIMP со слоями; для сайта изображение экспортируют отдельно."
+            ],
+            [
+              "DocumentRoot",
+              "Папка, которую HTTP-сервер отдаёт браузеру; здесь это public."
+            ],
+            [
+              "PRG",
+              "Post/Redirect/Get: перенаправление после успешной формы предотвращает повтор при обновлении."
+            ],
+            [
+              "Пагинация",
+              "Разделение списка на страницы; сервер ограничивает количество выбранных строк."
+            ],
+            [
+              "Podman",
+              "Контейнерное окружение для тренировки здесь; на экзамене его наличие не предполагается."
+            ]
+          ],
+          "resources": [
+            {
+              "title": "КИМ 09.02.07-3-2027",
+              "description": "Оригинальный документ ИРПО, зеркало колледжа; 50 страниц.",
+              "type": "PDF",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/kim.pdf"
+            },
+            {
+              "title": "Исходные приложения",
+              "description": "Оригинальные медиа, шрифты и руководство по стилю.",
+              "type": "ZIP",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/attachments.zip"
+            },
+            {
+              "title": "Рекомендации к выпуску",
+              "description": "Дополнительное описание структуры заданий.",
+              "type": "PDF",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/recommendations.pdf"
+            },
+            {
+              "title": "Руководство по стилю",
+              "description": "Палитра и PT Sans из исходного приложения.",
+              "type": "PDF",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/style-guide.pdf"
+            },
+            {
+              "title": "Рабочий ConferencePortal",
+              "description": "PHP/MySQL, все ресурсы, HTML-макеты, инструкция и тесты.",
+              "type": "ZIP",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/ConferencePortal_PHP_MySQL_2027.zip"
+            },
+            {
+              "title": "Полная пошаговая методичка",
+              "description": "72 раздела, 360 действий, полные файлы решения.",
+              "type": "MD",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/guide.md"
+            },
+            {
+              "title": "Автономная методичка с материалами",
+              "description": "Markdown, снимки, документы и проект по относительным ссылкам.",
+              "type": "ZIP",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/ConferencePortal-Guide.zip"
+            },
+            {
+              "title": "Схема MySQL",
+              "description": "4 таблицы, 3 внешних ключа и индексы.",
+              "type": "SQL",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/schema.sql"
+            },
+            {
+              "title": "ER-диаграмма",
+              "description": "Схема учебного решения; экспорт из Workbench описан отдельно.",
+              "type": "SVG",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/er-diagram.svg"
+            },
+            {
+              "title": "Матрица покрытия 75 баллов",
+              "description": "Восемь опубликованных групп, реализация и способ проверки.",
+              "type": "MD",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/requirements.md"
+            },
+            {
+              "title": "Обоснование дизайна",
+              "description": "Сценарии аудитории, стиль, графика и адаптивность.",
+              "type": "MD",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/design.md"
+            },
+            {
+              "title": "Результат HTTP-проверок",
+              "description": "58 проверок, 0 ошибок в сохранённом запуске; команда повторного запуска в README.",
+              "type": "JSON",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/results/http-results.json"
+            },
+            {
+              "title": "Браузерная проверка",
+              "description": "Учебный пользователь, заявка, администратор, завершение и отзыв.",
+              "type": "JSON",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/results/browser-results.json"
+            },
+            {
+              "title": "Контрольные суммы файлов",
+              "description": "Проверка совпадения каталога, архива и исходников.",
+              "type": "JSON",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/source-manifest.json"
+            },
+            {
+              "title": "Происхождение материалов",
+              "description": "Ссылки, SHA-256 и дата получения оригиналов.",
+              "type": "JSON",
+              "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/sources.json"
+            }
+          ],
+          "lessons": [
+            {
+              "id": "setup",
+              "title": "Рабочее место и маршрут на 75 баллов",
+              "short": "Проверяем инструменты, изучаем образец и готовим структуру проекта.",
+              "number": "00",
+              "time": 0,
+              "tag": "Подготовка",
+              "summary": "Разделяем подготовительный день, экзамен и домашнюю тренировку. На экзамене используем разрешённый локальный сервер; здесь приложение проверено в Podman.",
+              "deliverable": "Рабочая папка, подключение к MySQL и доступ к локальному Git.",
+              "source": "КИМ: с. 7, 12–13, 29, 33–37; приложение: руководство по стилю.",
+              "icon": "Settings",
+              "sections": [
+                {
+                  "id": "scope",
+                  "title": "Что именно готовим",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "ConferencePortal решает образец «Конференции.РФ» на PHP 8.4, PDO и MySQL 8.4. Оформление использует локальный Bootstrap 5.3.8 и обычный JavaScript. Vue, Laravel, Tailwind и jQuery разрешены по условиям пользователя; этот вариант обходится без npm-сборки."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Откройте титульный лист КИМ и сверьте квалификацию, год и код со своим вариантом.",
+                        "Выпишите отдельно требования к данным, страницам и правам, чтобы дизайн не заслонил функциональность.",
+                        "Найдите таблицу времени: три задания занимают 90, 60 и 60 минут.",
+                        "Выберите в методичке ПА для первого задания или ГИА для полного маршрута.",
+                        "Скачайте учебный ZIP и прочитайте README; право принести готовые файлы на экзамен определяет площадка."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "score-map",
+                  "title": "Как читать 75 баллов",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Таблица 7 содержит восемь групп критериев. Матрица docs/requirements.md связывает их с файлами и проверками; тесты подтверждают поведение, окончательную оценку ставят эксперты."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Откройте таблицу 7 на странице 13 КИМ.",
+                        "Отметьте первый блок: разработка — 6, безопасность — 16, работа с информацией — 3.",
+                        "Отметьте дизайн: стиль — 11, современные средства — 10, анализ требований — 4.",
+                        "Отметьте третий блок: интерфейс — 15 и приложение — 10; сумма трёх блоков равна 75.",
+                        "Для каждой группы найдите проверяемый результат в матрице; не распределяйте баллы между своими кнопками произвольно."
+                      ]
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "Матрица опубликованных критериев",
+                          "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/requirements.md",
+                          "description": "Файл из проверенного учебного проекта."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "day-before",
+                  "title": "Подготовительный день",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Заранее проверяют готовность среды и соединение. Экзаменационную БД проектируют в день экзамена; учебный импорт дома не заменяет это действие."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Получите у технического эксперта адрес MySQL, порт, пользователя и имя доступной базы.",
+                        "Подключитесь предоставленным клиентом и выполните SELECT VERSION(), DATABASE(), CURRENT_USER().",
+                        "Проверьте простой запрос без создания экзаменационных таблиц заранее.",
+                        "Найдите локальные медиа, Bootstrap, справочник PHP и разрешённые библиотеки.",
+                        "Проверьте доступ к индивидуальному Git и запишите адрес сайта и DocumentRoot."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "local-stack",
+                  "title": "Локальный сервер: что должно быть установлено",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "На площадке могут быть Open Server, Apache/PHP или общий сервер. Не устанавливайте новое ПО самостоятельно. Нужны PHP 8.4 с pdo_mysql, MySQL и браузер."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Откройте терминал установленного PHP или терминал с уже настроенным PATH.",
+                        "Выполните php -v и проверьте, что используется нужная копия PHP.",
+                        "Выполните php -m и найдите PDO и pdo_mysql; отсутствие драйвера вызывает could not find driver.",
+                        "Проверьте версию MySQL: CHECK в учебной схеме действует начиная с 8.0.16.",
+                        "Выберите public как корень сайта, а на общем сервере уточните разрешённый путь публикации у эксперта."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "folders",
+                  "title": "Создание рабочей папки",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "public содержит только публичные файлы; src — классы; views — шаблоны; sql — структуру БД; bin — команды; docs — доказательства результата."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В Проводнике создайте ConferencePortal в выданной рабочей директории.",
+                        "В редакторе выберите Файл → Открыть папку и укажите ConferencePortal.",
+                        "Создайте public/assets, src, views, sql, bin, docs и tests.",
+                        "Включите показ расширений: index.php.txt не должен выглядеть как PHP-файл.",
+                        "Создайте .gitignore и сохраняйте PHP в UTF-8 без BOM перед открывающим тегом."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:.gitignore",
+                      "language": "plain",
+                      "title": ".gitignore — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "starter-git",
+                  "title": "Первый коммит",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Git фиксирует реальные этапы работы. Для отправки на локальный сервер площадки GitHub и интернет не требуются."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В терминале проекта выполните git init, если репозиторий ещё не создан.",
+                        "Задайте git config user.name и user.email для этого репозитория.",
+                        "Добавьте .gitignore и начальную структуру, сделайте первый коммит.",
+                        "Добавьте remote origin с адресом, выданным площадкой, и проверьте git remote -v.",
+                        "Отправьте коммит разрешённым способом и убедитесь, что он появился на сервере."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "sources",
+                  "title": "Разбор приложений",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "ZIP содержит фотографии, шрифты и руководство по стилю. Оригиналы хранятся отдельно от подготовленных ресурсов сайта."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Распакуйте исходный ZIP в отдельную папку и сохраните его без изменений.",
+                        "Откройте руководство по стилю, выпишите палитру и размеры текста.",
+                        "Из PT_Sans.zip извлеките Regular, Bold, Italic и лицензию OFL.",
+                        "Просмотрите миниатюры и выберите три фотографии разных пространств.",
+                        "Запишите исходные имена, разрешение и размер выбранных файлов для таблицы оптимизации."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "configuration",
+                  "title": "Настройки соединения",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Database::connect читает учебные значения, затем config.local.php, затем переменные окружения. Контейнерное имя spravka-web-db нельзя переносить на обычный локальный сервер."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Скопируйте config.example.php в config.local.php в корне проекта.",
+                        "Укажите выданный адрес MySQL; 127.0.0.1 подходит только для БД на этом компьютере.",
+                        "Укажите порт, имя доступной базы, пользователя и пароль своей среды.",
+                        "Оставьте config.local.php вне Git, а пример конфигурации сохраните без настоящих секретов.",
+                        "Если использовали Podman, проверьте, что в локальном терминале не осталось DB_HOST=spravka-web-db."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:config.example.php",
+                      "language": "php",
+                      "title": "config.example.php — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:src/Database.php",
+                      "language": "php",
+                      "title": "src/Database.php — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "local-database",
+                  "title": "Создание БД в Workbench или phpMyAdmin",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Учебная схема не удаляет БД и не выбирает за вас её имя. Инициализация работает с уже существующей выбранной базой."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В Workbench создайте Schema conference_portal с utf8mb4, либо используйте имя площадки.",
+                        "В phpMyAdmin аналогичное действие находится в Базы данных → Создать; на общем сервере его может выполнять эксперт.",
+                        "Выдайте приложению права только на учебную БД, не используйте серверный root.",
+                        "Сверьте имя схемы с config.local.php и выполните php bin/init.php из корня проекта.",
+                        "Обновите список таблиц: должны появиться users, rooms, bookings и reviews."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:bin/init.php",
+                      "language": "php",
+                      "title": "bin/init.php — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "local-start",
+                  "title": "Запуск без контейнеров",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Встроенный сервер PHP подходит для тренировки на настроенной машине. На экзамене используйте сервер площадки; контейнеры не обязательны."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В терминале перейдите в корень ConferencePortal, где находится public.",
+                        "Выполните php -S 127.0.0.1:8080 -t public и оставьте терминал открытым.",
+                        "Откройте http://127.0.0.1:8080/; PHP нельзя проверять двойным щелчком через file://.",
+                        "Для Apache укажите DocumentRoot на public и используйте назначенный локальный домен.",
+                        "Проверьте страницу входа и локальные ресурсы, затем ?page=missing с понятным ответом 404."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "podman-training",
+                  "title": "Podman для домашней проверки",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Здесь PHP и MySQL запускаются только в контейнерах. MySQL не публикует порт, HTTP доступен только на 127.0.0.1:8087. Это дополнительный способ тренировки."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Из репозитория перейдите в examples/ConferencePortal.",
+                        "Выполните bash bin/podman.sh up; первый запуск скачает официальные образы и соберёт драйвер PDO.",
+                        "Дождитесь сообщения о четырёх таблицах и откройте http://127.0.0.1:8087/.",
+                        "Проверьте вход администратора Conf2027 / Demo77.",
+                        "Останавливайте через bash bin/podman.sh down: удалятся только контейнеры проекта, данные в томе сохранятся."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:Containerfile",
+                      "language": "plain",
+                      "title": "Containerfile — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:bin/podman.sh",
+                      "language": "bash",
+                      "title": "bin/podman.sh — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "troubleshooting",
+                  "title": "Если запуск не удался",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Разделяйте ошибки окружения, соединения и программы. Страница 503 скрывает внутренние подробности, полное исключение находится в серверном журнале."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "При could not find driver проверьте pdo_mysql именно того PHP, который обслуживает сайт.",
+                        "При Access denied проверьте пользователя, пароль и разрешённый хост подключения.",
+                        "При Unknown database создайте схему или исправьте имя в конфигурации.",
+                        "При Table does not exist выполните init.php с теми же настройками, что использует сайт.",
+                        "При пропавших стилях проверьте public/assets и DocumentRoot; в Podman читайте logs только своих app и db."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "architecture",
+                  "title": "Как запрос проходит по проекту",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Браузер → index.php → Portal → репозиторий → MySQL → шаблон. ООП разделяет обязанности вместо одного файла со всеми SQL и HTML."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В public/index.php найдите запуск сессии, заголовки и создание Portal.",
+                        "В src/bootstrap.php найдите автозагрузчик классов Conference.",
+                        "Проследите в Portal::run обработку GET, POST и неизвестного маршрута.",
+                        "Убедитесь, что SQL находится в репозиториях, а общий HTML — в layout.php.",
+                        "Проследите один путь целиком: форма заявки → post booking → create → redirect dashboard."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:public/index.php",
+                      "language": "php",
+                      "title": "public/index.php — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:src/bootstrap.php",
+                      "language": "php",
+                      "title": "src/bootstrap.php — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:views/message.php",
+                      "language": "php",
+                      "title": "views/message.php — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "versions",
+                  "title": "Версии и перенос на площадку",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Учебный архив содержит проверенный набор файлов, но пути и учётные данные всегда зависят от среды. Не меняйте структуру вслепую при переносе."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Запишите php -v и SELECT VERSION() в свой отчёт.",
+                        "Проверьте, что сервер обрабатывает PHP 8.4, а не старый модуль.",
+                        "Сверьте корень сайта и относительные адреса assets после копирования.",
+                        "Заполните собственный config.local.php, не изменяя учебные исходники под секреты.",
+                        "Повторите короткий сценарий входа и заявки именно на том сервере, где будете показывать результат."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "time-plan",
+                  "title": "План времени и контрольные точки",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Сначала работающий сценарий, затем оформление. Внутреннее распределение минут — тренировочный ориентир, а не дополнительное правило КИМ."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В начале первого задания спроектируйте схему, импортируйте её и сохраните ER.",
+                        "Затем реализуйте регистрацию, вход и права; завершите заявки и состояния до конца 90 минут.",
+                        "Во втором задании примените стиль ко всем страницам, затем проверьте мобильный экран и графику.",
+                        "В третьем завершите отзывы, интерактивность, фильтры и негативные проверки.",
+                        "Оставьте время на итоговый просмотр файлов, коммит и проверку отправки на сервер."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "preparation-check",
+                  "title": "Проверка готовности",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Подготовка завершена, когда вы понимаете структуру решения и можете объяснить, как запускать его в своей среде."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Откройте все папки проекта и объясните назначение каждой.",
+                        "Найдите настройки соединения и убедитесь, что секреты исключены из Git.",
+                        "Откройте исходное руководство по стилю и таблицу критериев.",
+                        "Проверьте доступ к исходникам и материалам без внешнего интернета.",
+                        "Начинайте первое задание только после того, как понятны адрес сайта, база и способ сдачи."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "checks": [
+                "Различаю ПА (25 баллов) и ГИА БУ (75); вариативную часть не заменяю выдуманным заданием.",
+                "Проверены PHP, pdo_mysql, MySQL и адрес сервера.",
+                "Сохранены приложения, известны требования к стилю и графике.",
+                "Создана структура файлов и проверен доступ к индивидуальному репозиторию.",
+                "Podman понимаю как тренировочную среду, а не требование экзамена."
+              ]
+            },
+            {
+              "id": "application",
+              "title": "База данных и рабочее приложение",
+              "short": "Четыре таблицы, регистрация, вход, заявки и права администратора.",
+              "number": "01",
+              "time": 90,
+              "tag": "Задание 01",
+              "summary": "Собираем полный сценарий: пользователь регистрируется и создаёт заявку, администратор видит её и меняет статус. Все изменения проверяет сервер.",
+              "deliverable": "PHP-приложение, схема MySQL, ER-диаграмма и коммиты первого задания.",
+              "source": "КИМ: с. 29–35; первый блок: 6 + 16 + 3 = 25 баллов.",
+              "icon": "Database",
+              "sections": [
+                {
+                  "id": "entities",
+                  "title": "Сущности и границы системы",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Модель содержит пользователя, помещение, заявку и отзыв. Заявка представляет планируемое мероприятие; способ оплаты фиксируется, реальные деньги портал не переводит."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Выпишите поля регистрации и отдельную роль доступа пользователя.",
+                        "Опишите справочник помещений: название, описание, изображение, вместимость.",
+                        "Для заявки запишите владельца, помещение, начало, оплату и статус.",
+                        "Для отзыва оставьте ссылку на заявку, текст и время создания.",
+                        "Сопоставьте каждое поле с формой ввода и местом отображения, не дублируйте названия в разных таблицах."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "relations",
+                  "title": "Ключи, связи и нормализация",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "users → bookings и rooms → bookings: один ко многим. bookings → reviews: максимум один отзыв благодаря UNIQUE. Владелец отзыва определяется через заявку."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Назначьте каждой сущности первичный ключ id.",
+                        "Добавьте bookings.user_id и room_id с тем же типом INT UNSIGNED, что у родителей.",
+                        "Добавьте reviews.booking_id с FOREIGN KEY и UNIQUE.",
+                        "Оставьте ограничение удаления связанных данных, пока вариант не требует другого сценария.",
+                        "Нарисуйте кардинальности и объясните, почему reviews не нужен второй user_id."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "schema",
+                  "title": "Создание таблиц",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "sql/schema.sql рассчитан на выбранную схему MySQL. Отсутствие DROP защищает существующие данные от случайного удаления."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Выберите свою Schema двойным щелчком в Workbench или через USE.",
+                        "Откройте schema.sql и выполните целиком.",
+                        "Обновите таблицы и проверьте четыре ожидаемых имени.",
+                        "Сравните типы, первичные ключи, UNIQUE и FOREIGN KEY с файлом.",
+                        "Сохраните SQL в рабочем репозитории: таблицы только на сервере не заменяют исходник."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:sql/schema.sql",
+                      "language": "sql",
+                      "title": "sql/schema.sql — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "er-workbench",
+                  "title": "ER-диаграмма в MySQL Workbench",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "КИМ требует сохранённую ER. SVG в архиве объясняет модель; на экзамене постройте диаграмму по своей действующей БД."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Выберите Database → Reverse Engineer и рабочее соединение.",
+                        "На шаге выбора схем отметьте только собственную БД и её четыре таблицы.",
+                        "Завершите импорт и откройте EER Diagram.",
+                        "Разместите users и rooms слева, bookings в центре, reviews справа, проверьте линии связей.",
+                        "Через File → Export сохраните PNG или SVG в docs, затем сохраните модель .mwb и добавьте в Git."
+                      ]
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "ER-диаграмма учебной БД",
+                          "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/er-diagram.svg",
+                          "description": "Файл из проверенного учебного проекта."
+                        }
+                      ]
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "MySQL Workbench: Reverse Engineer",
+                          "url": "https://dev.mysql.com/doc/workbench/en/wb-reverse-engineer-live.html",
+                          "description": "Официальная документация; для экзамена используйте разрешённый офлайн-справочник."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "initial-data",
+                  "title": "Помещения и администратор",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Начальные данные создаёт bin/init.php. Пароль администратора Demo77 короче восьми символов, но задан КИМ; пользовательская регистрация сохраняет правило восьми символов."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Выполните php bin/init.php после настройки соединения.",
+                        "Проверьте три помещения: аудитория, коворкинг и кинозал.",
+                        "Найдите Conf2027 с ролью admin, не выводя хеш на публичную страницу.",
+                        "Запустите инициализацию повторно: строки не должны дублироваться.",
+                        "Не создавайте администратора через публичную регистрацию и не принимайте role из POST."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "pdo",
+                  "title": "PDO и подготовленные запросы",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Подготовка SQL отделяет значения от текста запроса. utf8mb4 сохраняет кириллицу, а единая настройка PDO действует во всех репозиториях."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Найдите в DSN host, port, dbname и charset=utf8mb4.",
+                        "Проверьте ATTR_ERRMODE=EXCEPTION для централизованной обработки сбоев.",
+                        "Установите FETCH_ASSOC для чтения результатов по именам столбцов.",
+                        "Отключите эмуляцию prepare и передавайте значения через execute.",
+                        "Запишите и прочитайте кириллическое ФИО, проверив отсутствие повреждённых символов."
+                      ]
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "PHP: подготовленные запросы",
+                          "url": "https://www.php.net/manual/en/pdo.prepared-statements.php",
+                          "description": "Официальная документация; для экзамена используйте разрешённый офлайн-справочник."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "autoload",
+                  "title": "Автозагрузка и общие функции",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "bootstrap.php загружает классы Conference и функции для безопасного вывода, чтения ввода, перенаправлений и CSRF."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Сравните namespace классов с префиксом автозагрузчика.",
+                        "Проверьте регистр имени файла: Linux различает Portal.php и portal.php.",
+                        "Найдите e и используйте его для пользовательских строк.",
+                        "Проверьте input: массив вместо строки должен стать пустым значением, а не вызвать TypeError.",
+                        "Найдите redirect с 303 и exit, затем csrf с экранированным значением токена."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "controller",
+                  "title": "Маршруты и контроллер",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Portal получает PDO через конструктор, создаёт репозитории и читает текущего пользователя из БД. Список допустимых маршрутов фиксирован."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте Portal.php с namespace Conference.",
+                        "Передайте PDO в конструктор и создайте оба репозитория.",
+                        "В run разрешите только login, register, dashboard, booking, admin и logout.",
+                        "Для неизвестного page верните 404, не подключайте файл из произвольного URL.",
+                        "Проверьте права до POST, подготовьте данные и вызовите render."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:src/Portal.php",
+                      "language": "php",
+                      "title": "src/Portal.php — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "users-repository",
+                  "title": "Репозиторий пользователей",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "UserRepository содержит только операции с users. Значение role не поступает из браузера, а byId возвращает минимальные данные для текущего пользователя."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте класс с PDO в конструкторе.",
+                        "В byLogin используйте подготовленный SELECT по login.",
+                        "В byId выбирайте id, login, full_name и role.",
+                        "В create вставляйте только разрешённые поля, оставив role=user по умолчанию.",
+                        "Получите password_hash до вставки и проверьте отсутствие открытого пароля в INSERT."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:src/UserRepository.php",
+                      "language": "php",
+                      "title": "src/UserRepository.php — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "registration-fields",
+                  "title": "Пять полей регистрации",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Подписи, подсказки и ошибки связываются с конкретным полем через id. Безопасные значения сохраняются при ошибке, пароль повторно не выводится."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте register.php и подключите fields.php.",
+                        "Добавьте ФИО с autocomplete=name, логин с username и пароль с new-password.",
+                        "Для телефона используйте tel с образцом, для почты — email.",
+                        "Добавьте CSRF и кнопку «Создать пользователя».",
+                        "Поставьте обратную ссылку входа и проверьте переход между двумя страницами."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:views/fields.php",
+                      "language": "php",
+                      "title": "views/fields.php — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:views/register.php",
+                      "language": "php",
+                      "title": "views/register.php — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "image",
+                      "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/screenshots/02-register-mobile.jpg",
+                      "alt": "Работающий ConferencePortal: Пять полей регистрации",
+                      "caption": "Снимок реального запуска PHP/MySQL в Podman. Учебные данные, 13.10.2026."
+                    }
+                  ]
+                },
+                {
+                  "id": "registration-validation",
+                  "title": "Серверная валидация",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Validation возвращает словарь ошибок для каждого поля. Правила действуют даже при отключённом JavaScript."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Логин проверьте целиком: от шести латинских букв и цифр.",
+                        "Для пароля потребуйте минимум восемь символов и максимум 72 байта для bcrypt.",
+                        "Для ФИО разрешите кириллицу, Ё/ё и пробелы, ограничьте длину.",
+                        "Проверьте формат телефона целиком и почту через FILTER_VALIDATE_EMAIL.",
+                        "Верните все ошибки одновременно и проверьте 422 при прямой отправке неверных данных."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:src/Validation.php",
+                      "language": "php",
+                      "title": "src/Validation.php — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "uniqueness",
+                  "title": "Уникальность логина",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "SELECT перед вставкой не защищает от двух одновременных запросов. Окончательное ограничение задаёт UNIQUE, а код duplicate key преобразуется в сообщение формы."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Проверьте UNIQUE users.login.",
+                        "Убедитесь, что ascii_general_ci считает WebAlice и webalice одним логином.",
+                        "Создайте аккаунт и повторите регистрацию с тем же логином.",
+                        "Проверьте сохранение ФИО и контактов при ошибке без сохранения пароля в HTML.",
+                        "Обрабатывайте только ожидаемый код 1062, не выдавайте любой сбой БД за занятый логин."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "passwords",
+                  "title": "Пароли: хеш и проверка",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "password_hash создаёт необратимый хеш с необходимыми параметрами. password_verify проверяет пароль; md5 и собственная соль здесь не нужны."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте пользователя с учебным паролем.",
+                        "В клиенте БД сравните password_hash с введённой строкой: они должны различаться.",
+                        "Проверьте вызов password_verify после поиска пользователя по логину.",
+                        "Не обрезайте пробелы пароля: input вызывается с trim=false.",
+                        "Убедитесь, что пароль не попадает в URL, ошибки, журналы формы и снимки экрана."
+                      ]
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "PHP: password_hash",
+                          "url": "https://www.php.net/manual/en/function.password-hash.php",
+                          "description": "Официальная документация; для экзамена используйте разрешённый офлайн-справочник."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "login",
+                  "title": "Вход и ошибки",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Для неверного логина и пароля выводится одинаковое сообщение. Успешный вход меняет идентификатор сессии и направляет пользователя по его роли."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте login.php с двумя полями и ссылкой регистрации.",
+                        "В POST сохраните для повторного вывода только логин.",
+                        "При ошибке верните 422 и сообщение рядом с формой.",
+                        "При успехе обновите session id, сохраните user_id и новый CSRF.",
+                        "Проверьте неправильный пароль, правильный вход и точную пару Conf2027 / Demo77."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:views/login.php",
+                      "language": "php",
+                      "title": "views/login.php — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "image",
+                      "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/screenshots/01-login-mobile.jpg",
+                      "alt": "Работающий ConferencePortal: Вход и ошибки",
+                      "caption": "Снимок реального запуска PHP/MySQL в Podman. Учебные данные, 13.10.2026."
+                    },
+                    {
+                      "type": "image",
+                      "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/screenshots/08-login-desktop.jpg",
+                      "alt": "Работающий ConferencePortal: Вход и ошибки",
+                      "caption": "Снимок реального запуска PHP/MySQL в Podman. Учебные данные, 13.10.2026."
+                    }
+                  ]
+                },
+                {
+                  "id": "session",
+                  "title": "Сессия и выход",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Браузер хранит cookie с идентификатором, данные пользователя находятся на сервере. Роль перечитывается из users, а выход защищён POST-формой."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Включите session.use_strict_mode до session_start.",
+                        "Укажите HttpOnly и SameSite=Lax, а Secure включайте при HTTPS.",
+                        "После входа используйте session_regenerate_id.",
+                        "Для выхода отправьте POST с CSRF, очистите сессию и смените id.",
+                        "После выхода откройте admin вручную: должна появиться страница входа."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "authorization",
+                  "title": "Проверка прав на сервере",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Скрытые ссылки не защищают данные. Ограничение admin действует до изменения статуса, а owner для кабинета берётся из текущей сессии."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Войдите обычным пользователем и откройте ?page=admin вручную.",
+                        "Проверьте 403 даже с действительным токеном обычного пользователя.",
+                        "Найдите вызов listing для dashboard с текущим user id.",
+                        "Убедитесь, что присланный user_id не может изменить владельца новой заявки.",
+                        "Войдите другим аккаунтом и проверьте отсутствие чужих карточек и возможности их изменить."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "csrf",
+                  "title": "Защита изменяющих форм",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "CSRF связывает POST с сессией. Он дополняет проверку прав и данных, а не заменяет её."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте токен через random_bytes при новой сессии.",
+                        "Добавьте csrf() во вход, регистрацию, заявку, отзыв, статус и выход.",
+                        "Сравнивайте токен через hash_equals.",
+                        "При отсутствии или несовпадении верните 403 с предложением обновить страницу.",
+                        "После входа обновите токен и проверьте прямой POST без него: данных в БД появиться не должно."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "room-options",
+                  "title": "Выбор помещения",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Финальная версия предлагает список справочника вместо свободного текста. Карточки помогают выбрать, сервер проверяет существование room_id."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Получите rooms через репозиторий с определённым порядком.",
+                        "Выведите экранированные название и описание, изображение берите из доверенного справочника.",
+                        "Добавьте select room_id с пустым первым вариантом.",
+                        "У кнопок карточек укажите data-room для JavaScript.",
+                        "Проверьте серверную ошибку при несуществующем или поддельном идентификаторе."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "booking-form",
+                  "title": "Форма заявки",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Форма передаёт помещение, начало и оплату. Владельца и начальный статус определяет сервер. Часовой пояс обозначен явно."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте booking.php с каталогом и формой.",
+                        "Используйте datetime-local для начала и select для двух способов оплаты.",
+                        "Покажите подпись «Московское время (UTC+3)».",
+                        "При ошибке сохраните выбранные безопасные значения и покажите сообщения у полей.",
+                        "Добавьте CSRF и кнопку отправки, не добавляйте user_id, role и status даже как hidden."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:views/booking.php",
+                      "language": "php",
+                      "title": "views/booking.php — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "image",
+                      "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/screenshots/03-booking-mobile.jpg",
+                      "alt": "Работающий ConferencePortal: Форма заявки",
+                      "caption": "Снимок реального запуска PHP/MySQL в Podman. Учебные данные, 13.10.2026."
+                    },
+                    {
+                      "type": "image",
+                      "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/screenshots/07-booking-desktop.jpg",
+                      "alt": "Работающий ConferencePortal: Форма заявки",
+                      "caption": "Снимок реального запуска PHP/MySQL в Podman. Учебные данные, 13.10.2026."
+                    }
+                  ]
+                },
+                {
+                  "id": "dates",
+                  "title": "Проверка даты и оплаты",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Строгий разбор отклоняет невозможные даты вместо тихого преобразования в следующий месяц. Запрет прошедшего времени — явно отмеченное дополнительное учебное правило."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Разберите starts_at по Y-m-dTH:i через DateTimeImmutable.",
+                        "Сравните обратное форматирование с исходной строкой.",
+                        "Преобразуйте действительную дату в DATETIME и отклоните прошедшее время.",
+                        "Проверьте payment по ключам onsite и sbp, не принимайте произвольный текст.",
+                        "Испытайте невозможную дату, вчерашнее время, пустые значения и оба разрешённых способа оплаты."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "save-booking",
+                  "title": "Сохранение и перенаправление",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "INSERT получает проверенные значения, а status=new задаётся БД по умолчанию. 303 после POST не даёт обновлению страницы повторить отправку."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Подготовьте INSERT для user_id, room_id, starts_at и payment.",
+                        "Передайте owner из сессии.",
+                        "Оставьте DEFAULT new и created_at на стороне БД.",
+                        "После execute сохраните одноразовое сообщение и перенаправьте в dashboard.",
+                        "Обновите страницу после успеха и убедитесь, что дубликат не появился."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:src/BookingRepository.php",
+                      "language": "php",
+                      "title": "src/BookingRepository.php — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "dashboard",
+                  "title": "Личный кабинет",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Кабинет получает только собственные заявки. Общий шаблон listing также используется администратором с дополнительными возможностями."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В dashboard.php подключите listing.php с admin=false.",
+                        "Выведите экранированное ФИО и переход к новой заявке.",
+                        "Покажите номер, помещение, дату, оплату и текстовый статус в карточке.",
+                        "Для пустого списка покажите понятный переход к бронированию.",
+                        "Для незавершённого мероприятия объясните отсутствие отзыва и проверьте сохранение списка после нового входа."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:views/dashboard.php",
+                      "language": "php",
+                      "title": "views/dashboard.php — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:views/listing.php",
+                      "language": "php",
+                      "title": "views/listing.php — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "image",
+                      "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/screenshots/04-dashboard-mobile.jpg",
+                      "alt": "Работающий ConferencePortal: Личный кабинет",
+                      "caption": "Снимок реального запуска PHP/MySQL в Podman. Учебные данные, 13.10.2026."
+                    }
+                  ]
+                },
+                {
+                  "id": "admin",
+                  "title": "Панель администратора",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Администратор видит заявки всех пользователей, контакты и форму статуса. Доступ определяется ролью в БД."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В admin.php подключите listing.php с admin=true.",
+                        "Для защищённого admin уберите ограничение owner.",
+                        "Добавьте ФИО, телефон и почту, не показывая пароль или хеш.",
+                        "В каждой карточке создайте select состояния, hidden id и CSRF.",
+                        "Войдите Conf2027 / Demo77 и найдите заявку другого пользователя."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:views/admin.php",
+                      "language": "php",
+                      "title": "views/admin.php — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "image",
+                      "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/screenshots/05-admin-mobile.jpg",
+                      "alt": "Работающий ConferencePortal: Панель администратора",
+                      "caption": "Снимок реального запуска PHP/MySQL в Podman. Учебные данные, 13.10.2026."
+                    },
+                    {
+                      "type": "image",
+                      "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/screenshots/09-admin-desktop.jpg",
+                      "alt": "Работающий ConferencePortal: Панель администратора",
+                      "caption": "Снимок реального запуска PHP/MySQL в Podman. Учебные данные, 13.10.2026."
+                    }
+                  ]
+                },
+                {
+                  "id": "state-change",
+                  "title": "Статусы и завершение задания",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Разрешены new, assigned и completed. Учебный проект не открывает завершённые события повторно, чтобы сохранённый отзыв оставался согласован с состоянием."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Назначьте новую заявку администратором и проверьте статус у владельца.",
+                        "Завершите мероприятие и проверьте доступность отзыва.",
+                        "Отправьте неизвестный статус и несуществующий id напрямую: ожидается ошибка без записи.",
+                        "Сохраните SQL и ER, проверьте полный базовый сценарий от регистрации до изменения состояния.",
+                        "Сделайте коммит первого задания и проверьте его отправку вместе с исходниками на сервер."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "checks": [
+                "Четыре таблицы связаны ключами, ER сохранена в рабочей папке.",
+                "Регистрация проверяет все поля и уникальный логин, пароль хранится как хеш.",
+                "Правильный вход работает, неверный показывает ошибку в форме.",
+                "Пользователь создаёт заявку и видит только свои данные.",
+                "Администратор Conf2027 / Demo77 видит все заявки и меняет статусы.",
+                "Сервер запрещает обычному пользователю доступ к административным действиям.",
+                "Исходники первого задания отправлены в репозиторий."
+              ]
+            },
+            {
+              "id": "design",
+              "title": "Дизайн, GIMP и мобильные страницы",
+              "short": "Стиль заказчика, оптимизация графики и пять экранов 390×844.",
+              "number": "02",
+              "time": 60,
+              "tag": "Задание 02",
+              "summary": "Оформляем работающее приложение: синяя палитра, локальный PT Sans и фотографии из приложений. Сохраняем отдельные HTML-макеты всех пяти страниц.",
+              "deliverable": "Адаптивные страницы, оптимизированная графика, таблица размеров и HTML-макеты.",
+              "source": "КИМ: с. 35–36; руководство по стилю; дизайн: 11 + 10 + 4 = 25 баллов.",
+              "icon": "LayoutGrid",
+              "sections": [
+                {
+                  "id": "audience",
+                  "title": "Задачи и аудитория",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Организатор выбирает пространство и следит за заявкой. Администратор рассматривает обращения. Иерархия страниц следует этим сценариям."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Запишите два основных сценария и главное действие каждого экрана.",
+                        "На входе выделите поля и переход регистрации.",
+                        "В кабинете выделите новую заявку и состояния ранее созданных.",
+                        "У администратора поставьте фильтры над карточками и контакты внутри карточки.",
+                        "Сохраните краткое обоснование в docs/design.md, чтобы объяснить выбор интерфейса эксперту."
+                      ]
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "Обоснование дизайна",
+                          "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/design.md",
+                          "description": "Файл из проверенного учебного проекта."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "palette",
+                  "title": "Палитра из приложения",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Цвета руководства: #007bff, #0d47a1, #6c757d, #f8f9fa и #ffffff. Статусы имеют также текстовые подписи."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте переменные для текста, вторичного текста, действия, фона и границ.",
+                        "Основные кнопки оформите тёмно-синим с белым текстом, голубой используйте как акцент.",
+                        "Карточки сделайте белыми на светлом фоне.",
+                        "Проверьте, что статусы различимы без распознавания цвета.",
+                        "Сверьте страницу с исходным руководством, не оценивайте стиль только по памяти."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "typography",
+                  "title": "Локальный PT Sans",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Шрифты поставляются в assets вместе с OFL. Сайт не обращается к Google Fonts и работает без внешней сети."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Скопируйте PT Sans Regular, Bold и Italic из приложения.",
+                        "Опишите три @font-face и назначьте семейство body и формам.",
+                        "Примените H1 36px, H2 24px, H3 18px и основной текст 16px.",
+                        "Вспомогательные тексты оформите 12px Italic, сохраняя читаемость ошибок.",
+                        "В DevTools Computed проверьте фактическое семейство и размер, а Network — локальную загрузку."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "bootstrap",
+                  "title": "Bootstrap без CDN",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Локальный Bootstrap используется для форм, кнопок, уведомлений и контейнеров. Его JS не нужен: небольшие интерактивные действия реализованы собственным модулем."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Возьмите bootstrap.min.css из разрешённой локальной библиотеки.",
+                        "Подключите Bootstrap перед app.css в layout.",
+                        "Применяйте form-control, form-select, btn и alert одинаково во всех шаблонах.",
+                        "Сохраните лицензию рядом с файлом.",
+                        "Проверьте отсутствие CDN-запросов и не добавляйте дополнительные библиотеки без конкретной необходимости."
+                      ]
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "Bootstrap: локальные файлы",
+                          "url": "https://getbootstrap.com/docs/5.3/getting-started/contents/",
+                          "description": "Официальная документация; для экзамена используйте разрешённый офлайн-справочник."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "image-selection",
+                  "title": "Выбор фотографий из приложения",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Используются три исходных фотографии. media-manifest.json фиксирует их имена, результаты и размеры."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Для аудитории выберите 1679169355_design-pibig-info-p-sovr.jpg.",
+                        "Для коворкинга выберите 7621e0c3c1df2e3322f6222ff94e67f3.jpg.",
+                        "Для кинозала используйте 2692984_1632745507.225.jpg как иллюстрацию пространства для выступлений.",
+                        "Проверьте крупно качество и смысл кадра, затем запишите назначение каждого файла.",
+                        "Храните оригиналы отдельно и экспортируйте в assets понятные auditorium.webp, coworking.webp и cinema.webp."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "gimp-open",
+                  "title": "GIMP: рабочая копия",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "GIMP разрешён для графики. Здесь он не запускался: изображения подготовлены программно, а следующие действия описывают самостоятельную работу на площадке."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В GIMP выберите Файл → Открыть и исходник из media.",
+                        "Проверьте ориентацию и примените поворот по EXIF при необходимости.",
+                        "Выберите Файл → Сохранить как и сохраните .xcf в design-source.",
+                        "Оставьте оригинальный файл неизменным для сравнения.",
+                        "Повторяйте одинаковый процесс для всех трёх изображений, сохраняя рабочие исходники отдельно от веб-экспорта."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "gimp-crop",
+                  "title": "GIMP: кадр и масштаб",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Учебные изображения имеют размер 720×480 и пропорции 3:2. При кадрировании сохраняйте основной объект пространства."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Выберите инструмент Кадрирование с фиксированным соотношением 3:2.",
+                        "Выделите область, где читаются зал и рабочие места, затем подтвердите кадр.",
+                        "Откройте Изображение → Размер изображения и установите 720×480.",
+                        "Выберите качественную интерполяцию и сравните результат при масштабе 100%.",
+                        "Сохраните изменения в XCF, не перезаписывая оригинал."
+                      ]
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "GIMP: размер изображения",
+                          "url": "https://docs.gimp.org/3.0/en/gimp-image-scale.html",
+                          "description": "Официальная документация; для экзамена используйте разрешённый офлайн-справочник."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "gimp-export",
+                  "title": "GIMP: WebP и сравнение",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Качество 82 — параметр учебного варианта. Подбирайте сжатие по реальному изображению, а не только по минимальному размеру файла."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Выберите Файл → Экспортировать как и имя auditorium.webp в assets.",
+                        "Для фотографии начните с качества около 82, без lossless.",
+                        "Не добавляйте ненужные метаданные.",
+                        "Откройте экспортированный файл, сравните детали и запишите его размер из свойств.",
+                        "Повторите экспорт для двух остальных фото с теми же размерами 720×480."
+                      ]
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "GIMP: экспорт WebP",
+                          "url": "https://docs.gimp.org/3.0/en/file-webp-export.html",
+                          "description": "Официальная документация; для экзамена используйте разрешённый офлайн-справочник."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "media-proof",
+                  "title": "Доказательства оптимизации",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Таблица фиксирует источник, результат, байты до и после, разрешение и параметр качества. Значения должны относиться к фактически сдаваемым файлам."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте таблицу или JSON с параметрами всех трёх изображений.",
+                        "Измерьте размеры оригиналов и результатов, рассчитайте снижение объёма.",
+                        "Проверьте визуально приемлемое качество WebP.",
+                        "Укажите width и height в img, а для изображений ниже первого экрана используйте lazy.",
+                        "Сохраните manifest и рабочие исходники согласно правилам сдачи."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:public/assets/media-manifest.json",
+                      "language": "json",
+                      "title": "public/assets/media-manifest.json — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "shared-layout",
+                  "title": "Общий каркас",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Шапка, навигация, сообщения и подвал общие для всех страниц. layout исключает случайные расхождения подключения стилей и шрифтов."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте lang=ru, UTF-8, viewport и title страницы.",
+                        "Подключите локальные mark.svg, Bootstrap, CSS и JS через assets.",
+                        "Покажите навигацию с учётом текущего пользователя.",
+                        "Выведите успех через role=status, ошибки через role=alert.",
+                        "Поместите контент в main с skip-link и проверьте отсутствие вложенных HTML-документов."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:views/layout.php",
+                      "language": "php",
+                      "title": "views/layout.php — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "auth-layout",
+                  "title": "Дизайн входа и регистрации",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Широкий экран разделён на вступление и форму. На мобильном второстепенные элементы сокращаются, поля остаются в естественном порядке."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Проверьте ширину полей и заметность входа на широком экране.",
+                        "На 390×844 убедитесь, что колонки стали вертикальными.",
+                        "Проверьте, что «Показать» не перекрывает пароль.",
+                        "Откройте регистрацию и проверьте все пять полей и обратную ссылку.",
+                        "Отправьте ошибочную форму: сообщения не должны ломать сетку."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "booking-layout",
+                  "title": "Карточки и форма бронирования",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "На мобильном карточка сочетает миниатюру и текст, форма находится ниже каталога. Выбор карточки меняет select, но не записывает заявку сам по себе."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "На широком экране расположите каталог и форму в две колонки.",
+                        "На узком экране оставьте одну колонку и небольшую миниатюру.",
+                        "Проверьте перенос длинного описания внутри карточки.",
+                        "Выделите отправку заявки как главное действие, выбор помещения — как вспомогательное.",
+                        "Проверьте вид пустых полей, ошибок и заполненной сводки."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "dashboard-layout",
+                  "title": "Карточки кабинета и администратора",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Один набор компонентов показывает данные последовательно, административная роль добавляет контакты и управление состоянием."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Проверьте пустой кабинет и понятный переход к первой заявке.",
+                        "Создайте карточки с разными состояниями и сравните подписи.",
+                        "Убедитесь, что помещение, начало и статус видны раньше второстепенного текста.",
+                        "Проверьте перенос длинной почты, ФИО и отзыва.",
+                        "На мобильном перенесите кнопку сохранения статуса на отдельную строку."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "errors-accessibility",
+                  "title": "Ошибки, подписи и клавиатура",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Постоянный label нужен даже при заполненном поле. Ошибка объясняет исправление, а фокус помогает пройти форму без мыши."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Отправьте пустую регистрацию и проверьте ошибки у всех полей.",
+                        "Введите неверную почту и проверьте понятность сообщения.",
+                        "Сопоставьте label for и id каждого поля.",
+                        "Проверьте aria-invalid и aria-describedby для ошибки и подсказки.",
+                        "Пройдите страницу Tab и активируйте кнопки клавиатурой, проверяя видимый фокус."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "responsive-check",
+                  "title": "Пять экранов на 390×844",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Вертикальная прокрутка допустима. Горизонтальная для этих страниц не нужна. Проверяется весь маршрут, а не только первый экран."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В Device Toolbar задайте 390×844.",
+                        "Откройте по очереди login, register, dashboard, booking и admin.",
+                        "Прокрутите до подвала, найдите элементы за правым краем.",
+                        "Сравните document.documentElement.scrollWidth с innerWidth и проверьте также ширину около 650–768.",
+                        "Сохраните снимки в docs/screenshots и запишите проверенные размеры."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "html-prototypes",
+                  "title": "HTML-макеты и коммит дизайна",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "docs/design содержит пять HTML-снимков реальных страниц с теми же локальными ресурсами. Формы отключены от сервера, токены удалены."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Откройте docs/design/index.html и каждый экран.",
+                        "Проверьте относительный путь ../../public/assets после распаковки.",
+                        "Сравните HTML-макет с действующим PHP-маршрутом на мобильной ширине.",
+                        "Добавьте пояснение дизайна, manifest графики и снимки, не выдавая автоматическую конвертацию за работу GIMP.",
+                        "Сделайте отдельный коммит второго задания и проверьте наличие всех пяти страниц на сервере."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "checks": [
+                "Дизайн связан с задачами организатора и администратора.",
+                "Применены цвета и PT Sans из руководства.",
+                "Размеры графики до и после оптимизации зафиксированы.",
+                "Пять страниц проверены на 390×844 без горизонтальной прокрутки.",
+                "Ошибки находятся у полей; безопасные значения сохраняются.",
+                "HTML-макеты и снимки включены в проект, сделан коммит дизайна."
+              ]
+            },
+            {
+              "id": "quality",
+              "title": "Отзывы, интерактивность и сдача",
+              "short": "Завершаем сценарии, оптимизируем запросы и проверяем границы.",
+              "number": "03",
+              "time": 60,
+              "tag": "Задание 03",
+              "summary": "Доводим систему до полного базового маршрута: отзывы, фильтры, пагинация, безопасный вывод, анимации и проверка двух пользователей с администратором.",
+              "deliverable": "Рабочий портал, отчёты, инструкция локального запуска, SQL, ER и финальный коммит.",
+              "source": "КИМ: с. 36–37; третий блок: интерфейс 15 + приложение 10 = 25 баллов.",
+              "icon": "Braces",
+              "sections": [
+                {
+                  "id": "review-rule",
+                  "title": "Когда доступен отзыв",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "completed означает завершение мероприятия. Сервер повторяет условие доступности независимо от присутствия формы в браузере."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Откройте новую заявку: формы отзыва ещё нет.",
+                        "Назначьте мероприятие и проверьте, что отзыв всё ещё недоступен.",
+                        "Завершите мероприятие администратором.",
+                        "Вернитесь к владельцу и отправьте отзыв из нужной карточки.",
+                        "Обновите страницу: отзыв должен читаться из БД, повторная форма должна исчезнуть."
+                      ]
+                    },
+                    {
+                      "type": "image",
+                      "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/screenshots/06-review-mobile.jpg",
+                      "alt": "Работающий ConferencePortal: Когда доступен отзыв",
+                      "caption": "Снимок реального запуска PHP/MySQL в Podman. Учебные данные, 13.10.2026."
+                    }
+                  ]
+                },
+                {
+                  "id": "review-save",
+                  "title": "Атомарная запись отзыва",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "INSERT ... SELECT проверяет владельца и состояние в той же операции, которая создаёт отзыв. UNIQUE booking_id защищает от повторной записи."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Проверьте длину текста от 1 до 2000 символов.",
+                        "Передайте owner из сессии, id заявки и текст — через параметры.",
+                        "В INSERT SELECT ограничьте user_id и completed.",
+                        "Проверьте rowCount: ноль означает отсутствие подходящей заявки.",
+                        "Обработайте duplicate key и проверьте два быстрых запроса для одной заявки."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "safe-output",
+                  "title": "Безопасный вывод и XSS",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Пользовательский текст не становится HTML. Переносы строк добавляются после экранирования, а JS обновляет сводку через textContent."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Введите отзыв с <script> и обычным русским текстом.",
+                        "Проверьте отображение тегов как текста без выполнения кода.",
+                        "Найдите в listing.php порядок nl2br(e(...)).",
+                        "Проверьте экранирование ФИО, почты и сохранённых полей.",
+                        "В app.js используйте textContent, не подставляйте пользовательский текст в innerHTML."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "filters",
+                  "title": "Фильтры статуса, помещения и даты",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "GET-параметры удобно сохранять в ссылке. Значения проходят whitelist и подготовленные запросы, а не становятся частью SQL."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Выберите completed в фильтре администратора и сравните карточки.",
+                        "Выберите помещение без заявок и проверьте пустое состояние.",
+                        "Ограничьте выборку конкретным календарным днём.",
+                        "Нажмите «Сбросить» и верните полный список.",
+                        "Подставьте неверный статус в адрес и проверьте безопасную обработку."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "pagination",
+                  "title": "Пагинация по 12 карточек",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "LIMIT применяется в SQL. Номер страницы ограничивается существующим диапазоном, фильтры сохраняются в ссылках."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Создайте больше 12 заявок в отдельной тестовой БД.",
+                        "Проверьте появление навигации страниц.",
+                        "Перейдите на вторую страницу и убедитесь, что первая не повторилась.",
+                        "Примените фильтр и проверьте сохранение параметров в пагинации.",
+                        "Передайте чрезмерный номер p: список должен ограничиться последней доступной страницей."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "indexes",
+                  "title": "Запросы и индексы",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Список читает заявку, помещение, пользователя и отзыв одним JOIN. Индексы покрывают владельца и часто используемые ограничения."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Найдите JOIN users, JOIN rooms и LEFT JOIN reviews в listing.",
+                        "Убедитесь, что внутри HTML-цикла нет запросов для каждой карточки.",
+                        "Для дня используйте диапазон времени вместо DATE(starts_at).",
+                        "В MySQL выполните EXPLAIN для owner и для статуса с датой.",
+                        "Запишите выбранные индексы и наблюдения, не обещая одинаковое время ответа на любом сервере."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "javascript",
+                  "title": "Небольшой слой JavaScript",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "JavaScript улучшает существующие формы. Основные действия работают через PHP и после отключения скрипта."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Подключите app.js с defer.",
+                        "Найдите обработчики password-toggle и data-room.",
+                        "Проследите updateSummary по значениям формы.",
+                        "Проверьте предварительную валидацию, сохранив серверные правила.",
+                        "Отключите JS и повторите вход, заявку и фильтрацию."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:public/assets/app.js",
+                      "language": "javascript",
+                      "title": "public/assets/app.js — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "password-toggle",
+                  "title": "Показ пароля и фокус",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Кнопка type=button меняет только тип input. aria-pressed сообщает состояние, данные не копируются в хранилища."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Введите учебный пароль и нажмите «Показать».",
+                        "Проверьте переключение на type=text, затем обратно.",
+                        "Убедитесь, что нажатие не отправляет форму.",
+                        "Активируйте кнопку через Tab и клавиатуру.",
+                        "Проверьте связь label с полем и отсутствие пароля в localStorage или журнале."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "summary",
+                  "title": "Выбор помещения и живая сводка",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Сводка показывает введённые данные, но не обещает наличие свободных мест и не вычисляет стоимость: таких функций нет в образце."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Нажмите выбор на карточке коворкинга.",
+                        "Проверьте select и переход фокуса.",
+                        "Укажите будущую дату и время.",
+                        "Проверьте обновление сводки без POST и сохранение московского смысла времени.",
+                        "Измените select вручную и сравните итоговый текст с полями."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "motion",
+                  "title": "Анимация с reduced motion",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Карточки и уведомления плавно появляются, кнопки реагируют на нажатие. Эффекты короткие и отключаются при запросе reduced motion."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Найдите keyframes arrive и небольшую длительность.",
+                        "Не анимируйте тяжёлую высоту страницы и не блокируйте отправку.",
+                        "Добавьте реакцию active без задержки действия.",
+                        "В DevTools Rendering включите prefers-reduced-motion: reduce.",
+                        "Проверьте отсутствие движения и доступность элементов, включая прокрутку к форме."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:public/assets/app.css",
+                      "language": "css",
+                      "title": "public/assets/app.css — полный файл проверенного проекта"
+                    }
+                  ]
+                },
+                {
+                  "id": "offline",
+                  "title": "Работа без внешнего интернета",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Все рабочие ресурсы локальные. После подготовки окружения портал не требует внешней сети, но HTTP-доступ к серверу остаётся необходим."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "В Network проверьте адреса CSS, JS, шрифтов и изображений.",
+                        "Убедитесь, что они загружаются из assets.",
+                        "Заблокируйте внешние домены, сохраняя связь с локальным сервером.",
+                        "Повторите вход, заявку и переход между входом и регистрацией.",
+                        "Не путайте отсутствие интернета с DevTools Offline, который может блокировать и localhost."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "http-tests",
+                  "title": "HTTP-проверки в Podman",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "check-podman.sh создаёт отдельные тестовую БД и PHP-контейнер. Python проверяет реальные ответы и cookie; основная conference_portal не меняется."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Запустите bash bin/podman.sh up.",
+                        "Выполните bash bin/check-podman.sh из ConferencePortal.",
+                        "Дождитесь проверки синтаксиса и результата HTTP-сценариев.",
+                        "Прочитайте tests/results/http-results.json, включая названия всех проверок.",
+                        "Убедитесь, что временные контейнер и БД удалились; после изменения backend выполните новый прогон."
+                      ]
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:bin/check-podman.sh",
+                      "language": "bash",
+                      "title": "bin/check-podman.sh — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "code",
+                      "key": "file:tests/http_checks.py",
+                      "language": "python",
+                      "title": "tests/http_checks.py — полный файл проверенного проекта"
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "Сохранённый результат HTTP-проверок",
+                          "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/results/http-results.json",
+                          "description": "Файл из проверенного учебного проекта."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "negative-checks",
+                  "title": "Негативные сценарии",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Правильные ответы сервера на поддельные запросы проверяются отдельно от красивого интерфейса."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Проверьте короткий логин, неверный телефон, почту и повторный логин с другим регистром.",
+                        "Попробуйте неверный пароль и SQL-инъекцию в логине.",
+                        "Отправьте неизвестное помещение, оплату и невозможную дату.",
+                        "Попробуйте ранний, чужой, повторный, пустой и слишком длинный отзыв.",
+                        "Попробуйте административный POST обычным пользователем и без CSRF; записи должны быть отклонены."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "browser-tests",
+                  "title": "Живой сценарий в браузере",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "HTTP-тесты дополняются обычным браузером: так проверяются JS, фокус, сетка и фактическая доступность действий."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Зарегистрируйте учебного пользователя и войдите.",
+                        "Выберите комнату карточкой, дату и оплату, создайте заявку.",
+                        "Войдите администратором, назначьте и завершите её.",
+                        "Вернитесь к владельцу и сохраните отзыв, затем обновите страницу.",
+                        "Проверьте пять экранов на узкой и широкой ширине и отсутствие ошибок Console, сохраните снимки."
+                      ]
+                    },
+                    {
+                      "type": "links",
+                      "items": [
+                        {
+                          "title": "Сохранённый браузерный отчёт",
+                          "url": "materials/2027/web-developer/versions/25e746f66e53bdf5-conferenceportal/results/browser-results.json",
+                          "description": "Файл из проверенного учебного проекта."
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "delivery",
+                  "title": "Архив и финальный Git",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Сдаётся воспроизводимый проект с SQL, ER, ресурсами и инструкцией. Личные секреты и чужие данные не должны попасть в публичные файлы."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Проверьте наличие public, src, views, sql, bin и docs.",
+                        "Сохраните config.example.php, README, ER, матрицу, макеты, снимки и лицензии.",
+                        "При необходимости экспортируйте свою БД штатным клиентом по правилам площадки.",
+                        "Проверьте git status и git diff, затем сделайте финальный коммит.",
+                        "Отправьте его в индивидуальный репозиторий, проверьте SHA и откройте файлы через серверный интерфейс."
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "id": "demo-limits",
+                  "title": "Демонстрация и границы результата",
+                  "blocks": [
+                    {
+                      "type": "p",
+                      "text": "Показываем известный базовый образец, а не выдуманную вариативную часть. Запрет прошедшего времени, один отзыв и неизменность завершённого события — явно выбранные учебные правила."
+                    },
+                    {
+                      "type": "list",
+                      "items": [
+                        "Покажите схему и ER, затем ошибочную и успешную регистрацию.",
+                        "Создайте заявку, назначьте и завершите её администратором, сохраните отзыв владельца.",
+                        "Покажите мобильные страницы, оптимизацию графики и исходники в финальном коммите.",
+                        "Сверьте дополнительные учебные правила с фактическим вариантом и измените их вместе с тестами, если требуется.",
+                        "Не объявляйте автоматические 75 баллов: оценка зависит от экспертов; проверьте запуск на сервере площадки без обязательного Podman."
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "checks": [
+                "Отзыв доступен владельцу завершённой заявки, дубликат запрещён.",
+                "Показ пароля и выбор карточки работают, основные формы работают без JS.",
+                "Фильтры и пагинация используют данные MySQL.",
+                "Анимации учитывают prefers-reduced-motion.",
+                "Пройдены негативные сценарии, несколько ролей и мобильные экраны.",
+                "Архив содержит исходники, локальные ресурсы, SQL, ER, отчёты и инструкцию.",
+                "Финальный коммит отправлен на сервер."
+              ]
+            }
+          ]
         }
       ]
     }

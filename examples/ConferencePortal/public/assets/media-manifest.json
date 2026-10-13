@@ -1,0 +1,35 @@
+[
+  {
+    "source": "media/1679169355_design-pibig-info-p-sovr.jpg",
+    "output": "auditorium.webp",
+    "beforeBytes": 182127,
+    "afterBytes": 30894,
+    "size": [
+      720,
+      480
+    ],
+    "quality": 82
+  },
+  {
+    "source": "media/7621e0c3c1df2e3322f6222ff94e67f3.jpg",
+    "output": "coworking.webp",
+    "beforeBytes": 83014,
+    "afterBytes": 59000,
+    "size": [
+      720,
+      480
+    ],
+    "quality": 82
+  },
+  {
+    "source": "media/2692984_1632745507.225.jpg",
+    "output": "cinema.webp",
+    "beforeBytes": 711643,
+    "afterBytes": 42272,
+    "size": [
+      720,
+      480
+    ],
+    "quality": 82
+  }
+]
