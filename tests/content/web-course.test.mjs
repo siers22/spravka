@@ -1,10 +1,20 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import {execFileSync} from 'node:child_process'
 import {parseRoute, route, progressKey} from '../../src/data/course-meta.js'
 
 const catalog=JSON.parse(fs.readFileSync('content/catalog.json','utf8'))
 const web=catalog.editions.find(e=>e.year===2027).courses.find(c=>c.id==='web-developer')
+
+test('the published web project can be reconstructed from Git alone', {skip:!fs.existsSync('.git')}, ()=>{
+ const tracked=new Set(execFileSync('git',['ls-files','-z','--','examples/ConferencePortal'],{encoding:'utf8'}).split('\0'))
+ const base=web.download.slice(0,web.download.lastIndexOf('/'))
+ const manifest=JSON.parse(fs.readFileSync('public/'+base+'/source-manifest.json','utf8'))
+ for(const file of Object.keys(manifest.sha256)) {
+   assert.ok(tracked.has('examples/ConferencePortal/'+file),`Project file missing from Git: ${file}`)
+ }
+})
 
 test('web course covers the 75-point base route with one PA task and actual source files',()=>{
  assert.ok(web)

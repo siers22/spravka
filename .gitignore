@@ -3,6 +3,8 @@ node_modules/
 dist/
 tmp/
 **/bin/
+!examples/ConferencePortal/bin/
+!examples/ConferencePortal/bin/**
 **/obj/
 .env
 .env.*
